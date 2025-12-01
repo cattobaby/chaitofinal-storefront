@@ -224,27 +224,62 @@ export async function deleteLineItem(lineId: string) {
         .catch(medusaError)
 }
 
+/**
+ * Attach a shipping method to the cart.
+ * We now accept an optional sellerId and store it in `data.seller_id`
+ * so the marketplace logic can find "seller shipping methods".
+ */
 export async function setShippingMethod({
                                             cartId,
                                             shippingMethodId,
+                                            sellerId,
                                         }: {
     cartId: string
     shippingMethodId: string
-}) {
+    sellerId?: string | null
+}): Promise<{
+    ok: boolean
+    cart?: HttpTypes.StoreCart
+    error?: { message: string }
+}> {
     const headers = {
         ...(await getAuthHeaders()),
     }
 
-    const res = await fetchQuery(`/store/carts/${cartId}/shipping-methods`, {
-        body: { option_id: shippingMethodId },
-        method: "POST",
-        headers,
-    })
+    const body: any = {
+        option_id: shippingMethodId,
+    }
 
-    const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+    if (sellerId) {
+        body.data = {
+            seller_id: sellerId,
+        }
+    }
 
-    return res
+    try {
+        const res: any = await fetchQuery(`/store/carts/${cartId}/shipping-methods`, {
+            body,
+            method: "POST",
+            headers,
+        })
+
+        const cartCacheTag = await getCacheTag("carts")
+        revalidateTag(cartCacheTag)
+
+        const cart = (res && (res.cart as HttpTypes.StoreCart | undefined)) || undefined
+
+        return {
+            ok: true,
+            cart,
+        }
+    } catch (e: any) {
+        return {
+            ok: false,
+            error: {
+                message: e?.message || "Failed to set shipping method.",
+            },
+        }
+    }
 }
 
 export async function initiatePaymentSession(
