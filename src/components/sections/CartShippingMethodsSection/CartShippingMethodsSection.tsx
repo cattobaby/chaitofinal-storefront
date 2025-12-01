@@ -113,6 +113,17 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart }) => {
                 return setError(res.error?.message || "Failed to set delivery method.")
             }
 
+            // IMPORTANT:
+            // Now that the shipping_method row exists, call the distance endpoint again
+            // so it can override the shipping amount in the DB.
+            try {
+                await getDeliveryQuote(cart.id)
+            } catch (e) {
+                // Non-fatal – the cart will still have a method, just with base price
+                // eslint-disable-next-line no-console
+                console.warn("[delivery] Failed to apply distance-based fee after setShippingMethod:", e)
+            }
+
             router.push(pathname + "?step=payment", { scroll: false })
         } catch (e: any) {
             setError(
