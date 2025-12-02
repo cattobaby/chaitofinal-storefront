@@ -25,6 +25,7 @@ export async function retrieveCart(cartId?: string) {
     const id = cartId || (await getCartId())
 
     if (!id) {
+        console.log("Server  retrieveCart → no cart id, returning null")
         return null
     }
 
@@ -32,20 +33,93 @@ export async function retrieveCart(cartId?: string) {
         ...(await getAuthHeaders()),
     }
 
+    console.log("Server  retrieveCart → fetching cart ", {
+        id,
+        hasAuth: !!(headers as any).authorization,
+    })
+
     return await sdk.client
         .fetch<HttpTypes.StoreCartResponse>(`/store/carts/${id}`, {
             method: "GET",
             query: {
-                fields:
-                    "*items,*region, *items.product, *items.variant, *items.variant.options, items.variant.options.option.title," +
-                    "*items.thumbnail, *items.metadata, +items.total, *promotions, +shipping_methods.name, *items.product.seller" +
-                    "",
+                fields: [
+                    // items + variants + product
+                    "*items",
+                    "*items.product",
+                    "*items.variant",
+                    "*items.variant.options",
+                    "items.variant.options.option.title",
+                    "*items.thumbnail",
+                    "*items.metadata",
+                    "+items.total",
+
+                    // region
+                    "*region",
+
+                    // addresses
+                    "*shipping_address",
+                    "*billing_address",
+
+                    // promotions / shipping methods / seller
+                    "*promotions",
+                    "+shipping_methods.name",
+                    // ✅ IMPORTANT: fetch the amount so UI doesn't fall back to 0
+                    "+shipping_methods.amount",
+                    "*items.product.seller",
+
+                    // ✅ ask Medusa to compute and return totals (primitive fields)
+                    "+subtotal",
+                    "+shipping_total",
+                    "+discount_total",
+                    "+tax_total",
+                    "+total",
+
+                    // ✅ payment collection + sessions (include all session fields + data)
+                    "*payment_collection.payment_sessions",
+                    "payment_collection.payment_sessions.*",
+                    "payment_collection.payment_sessions.data",
+                ].join(","),
             },
             headers,
             cache: "no-cache",
         })
-        .then(({ cart }) => cart)
-        .catch(() => null)
+        .then(({ cart }) => {
+            const paymentSessions = cart?.payment_collection?.payment_sessions || []
+
+            if (paymentSessions.length) {
+                console.log(
+                    "Server  retrieveCart → payment sessions",
+                    paymentSessions.map((s: any) => ({
+                        id: s.id,
+                        provider_id: s.provider_id,
+                        status: s.status,
+                        hasData: !!s.data,
+                    }))
+                )
+            }
+
+            console.log("Server  retrieveCart → cart summary ", {
+                id: cart?.id,
+                itemsLength: cart?.items?.length || 0,
+                hasShippingAddress: !!cart?.shipping_address,
+                hasBillingAddress: !!cart?.billing_address,
+                hasShippingMethods: !!cart?.shipping_methods?.length,
+                hasPaymentCollection: !!cart?.payment_collection,
+                paymentSessions: paymentSessions.map((s: any) => ({
+                    id: s.id,
+                    provider_id: s.provider_id,
+                    status: s.status,
+                    hasData: !!s.data,
+                })),
+                hasTotals: !!(cart as any)?.totals,
+            })
+
+            return cart
+        })
+        .catch((e) => {
+            console.error("Server  retrieveCart → error", e)
+            return null
+        })
 }
 
 export async function getOrSetCart(countryCode: string) {
@@ -242,19 +316,38 @@ export async function setShippingMethod({
     cart?: HttpTypes.StoreCart
     error?: { message: string }
 }> {
-    const headers = {
-        ...(await getAuthHeaders()),
-    }
+    const headers = { ...(await getAuthHeaders()) }
 
-    const body: any = {
-        option_id: shippingMethodId,
-    }
+    // 🔒 Idempotency: if the cart already has this option attached, no-op
+    const existing = await sdk.client
+        .fetch<HttpTypes.StoreCartResponse>(`/store/carts/${cartId}`, {
+            method: "GET",
+            query: { fields: "+shipping_methods.shipping_option_id" },
+            headers,
+            cache: "no-cache",
+        })
+        .then(({ cart }) => cart)
+        .catch(() => null)
 
-    if (sellerId) {
-        body.data = {
-            seller_id: sellerId,
+    const alreadyAttached = !!existing?.shipping_methods?.some(
+        (m: any) => m?.shipping_option_id === shippingMethodId
+    )
+
+    if (alreadyAttached) {
+        // still ensure override is applied once
+        try {
+            const { getDeliveryQuote } = await import("./delivery")
+            await getDeliveryQuote(cartId)
+        } catch (e) {
+            console.warn("[setShippingMethod] distance override after no-op failed:", e)
         }
+
+        const cart = (await retrieveCart(cartId)) ?? undefined
+        return { ok: true, cart }
     }
+
+    const body: any = { option_id: shippingMethodId }
+    if (sellerId) body.data = { seller_id: sellerId }
 
     try {
         const res: any = await fetchQuery(`/store/carts/${cartId}/shipping-methods`, {
@@ -266,18 +359,21 @@ export async function setShippingMethod({
         const cartCacheTag = await getCacheTag("carts")
         revalidateTag(cartCacheTag)
 
-        const cart = (res && (res.cart as HttpTypes.StoreCart | undefined)) || undefined
-
-        return {
-            ok: true,
-            cart,
+        // Apply the distance-based override exactly once after attach
+        try {
+            const { getDeliveryQuote } = await import("./delivery")
+            await getDeliveryQuote(cartId)
+        } catch (e) {
+            console.warn("[setShippingMethod] post-attach distance override failed:", e)
         }
+
+        // Return a fresh cart snapshot
+        const cart = (await retrieveCart(cartId)) ?? undefined
+        return { ok: true, cart }
     } catch (e: any) {
         return {
             ok: false,
-            error: {
-                message: e?.message || "Failed to set shipping method.",
-            },
+            error: { message: e?.message || "Failed to set shipping method." },
         }
     }
 }
@@ -319,10 +415,11 @@ export async function applyPromotions(codes: string[]) {
         .then(async ({ cart }) => {
             const cartCacheTag = await getCacheTag("carts")
             revalidateTag(cartCacheTag)
-            // @ts-ignore
-            const applied = cart.promotions?.some((promotion: any) =>
+
+            const applied = (cart as any)?.promotions?.some((promotion: any) =>
                 codes.includes(promotion.code)
             )
+
             return applied
         })
         .catch(medusaError)
@@ -347,34 +444,6 @@ export async function removeShippingMethod(shippingMethodId: string) {
         {
             method: "DELETE",
             body: JSON.stringify({ shipping_method_ids: [shippingMethodId] }),
-            headers,
-        }
-    )
-        .then(async () => {
-            const cartCacheTag = await getCacheTag("carts")
-            revalidateTag(cartCacheTag)
-        })
-        .catch(medusaError)
-}
-
-export async function deletePromotionCode(promoId: string) {
-    const cartId = await getCartId()
-
-    if (!cartId) {
-        throw new Error("No existing cart found")
-    }
-    const headers = {
-        ...(await getAuthHeaders()),
-        "Content-Type": "application/json",
-        "x-publishable-api-key": process.env
-            .NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY as string,
-    }
-
-    return fetch(
-        `${process.env.MEDUSA_BACKEND_URL}/store/carts/${cartId}/promotions`,
-        {
-            method: "DELETE",
-            body: JSON.stringify({ promo_codes: [promoId] }),
             headers,
         }
     )
@@ -459,7 +528,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
 /**
  * Places an order for a cart. If no cart ID is provided, it will use the cart ID from the cookies.
  * @param cartId - optional - The ID of the cart to place an order for.
- * @returns The cart object if the order was successful, or null if not.
+ * @returns The cart object if the order was successful, or null if not found.
  */
 export async function placeOrder(cartId?: string) {
     const id = cartId || (await getCartId())
@@ -519,12 +588,8 @@ export async function updateRegion(countryCode: string, currentPath: string) {
 }
 
 /**
- * Updates the region and returns removed items for notification
- * This is a wrapper around updateRegion that doesn't redirect
- * Uses error-driven approach: tries to update, catches price errors, removes problem items, retries
- * @param countryCode - The country code to update to
- * @param currentPath - The current path for redirect
- * @returns Array of removed item names and new path
+ * Updates the region and returns removed items for notification.
+ * This is a wrapper around updateRegion that doesn't redirect.
  */
 export async function updateRegionWithValidation(
     countryCode: string,
@@ -547,21 +612,16 @@ export async function updateRegionWithValidation(
         try {
             await updateCart({ region_id: region.id })
         } catch (error: any) {
-            // Check if error is about variants not having prices
             if (!error?.message?.includes("do not have a price")) {
-                // Re-throw if it's a different error
                 throw error
             }
 
-            // Parse variant IDs from error message
             const problematicVariantIds = parseVariantIdsFromError(error.message)
 
-            // Early return if no variant IDs found
             if (!problematicVariantIds.length) {
                 throw new Error("Failed to parse variant IDs from error")
             }
 
-            // Fetch cart with minimal fields to get items
             try {
                 const { cart } = await sdk.client.fetch<HttpTypes.StoreCartResponse>(
                     `/store/carts/${cartId}`,
@@ -575,7 +635,6 @@ export async function updateRegionWithValidation(
                     }
                 )
 
-                // Iterate over problematic variants and remove corresponding items
                 for (const variantId of problematicVariantIds) {
                     const item = cart?.items?.find(
                         (item) => item.variant_id === variantId
@@ -584,22 +643,20 @@ export async function updateRegionWithValidation(
                         try {
                             await sdk.store.cart.deleteLineItem(cart.id, item.id, headers)
                             removedItems.push(item.product_title || "Unknown product")
-                        } catch (deleteError) {
-                            // Silent failure - item removal failed but continue
+                        } catch {
+                            // ignore delete failure
                         }
                     }
                 }
 
-                // Retry region update after removing problematic items
                 if (removedItems.length > 0) {
                     await updateCart({ region_id: region.id })
                 }
-            } catch (fetchError) {
+            } catch {
                 throw new Error("Failed to handle incompatible cart items")
             }
         }
 
-        // Revalidate caches
         const cartCacheTag = await getCacheTag("carts")
         revalidateTag(cartCacheTag)
     }
