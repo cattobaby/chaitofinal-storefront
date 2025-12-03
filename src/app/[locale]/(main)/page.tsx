@@ -1,6 +1,6 @@
 import {
   Hero,
-  ProductListing, // We import the main product grid component
+  ProductListing,
 } from "@/components/sections"
 
 import type { Metadata } from "next"
@@ -85,6 +85,7 @@ export default async function Home({
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
   const siteName = "Chaito Marketplace"
 
+  // Preload the first image for performance LCP
   return (
     <main className="flex flex-col gap-6 bg-neutral-50 pb-12">
       <link
@@ -108,23 +109,28 @@ export default async function Home({
         }}
       />
 
-      {/* 1. THIN BANNER (Contained & Padding) */}
+      {/* 1. MAIN BANNER CAROUSEL */}
       <div className="container mx-auto px-4 lg:px-8 mt-6">
         <Hero
-          image="/images/hero/image1.jpg"
-          heading="" // Empty heading for non-invasive look
-          paragraph="" // Empty paragraph
-          buttons={[]} // No buttons
+          // Passing the array of images creates the carousel
+          images={[
+            "/images/hero/image1.jpg",
+            "/images/hero/image2.jpg",
+            "/images/hero/image3.jpg"
+          ]}
+          // Keeping text props empty as requested for "non-invasive" look
+          heading=""
+          paragraph=""
+          buttons={[]}
         />
       </div>
 
-      {/* 2. PRODUCT FEED (Dense Grid) */}
+      {/* 2. PRODUCT FEED */}
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold uppercase tracking-wide text-brand-700">
             Recomendados
           </h2>
-          {/* Reuse the category listing component but for the homepage */}
           <ProductListing showSidebar={false} locale={locale} />
         </div>
       </div>

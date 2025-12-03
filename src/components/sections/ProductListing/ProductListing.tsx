@@ -1,58 +1,47 @@
-import {
-  ProductListingActiveFilters,
-  ProductListingHeader,
-  ProductSidebar,
-  ProductsList,
-  ProductsPagination,
-} from "@/components/organisms"
-import { PRODUCT_LIMIT } from "@/const"
-import { listProductsWithSort } from "@/lib/data/products"
+import { ProductCard } from "@/components/organisms/ProductCard/ProductCard"
+import { listProducts } from "@/lib/data/products"
+import { HttpTypes } from "@medusajs/types"
 
-export const ProductListing = async ({
-  category_id,
-  collection_id,
-  seller_id,
-  showSidebar = false,
-  locale = process.env.NEXT_PUBLIC_DEFAULT_REGION || "pl",
-}: {
+type ProductListingProps = {
   category_id?: string
   collection_id?: string
-  seller_id?: string
   showSidebar?: boolean
-  locale?: string
-}) => {
-  const { response } = await listProductsWithSort({
-    seller_id,
-    category_id,
-    collection_id,
+  locale: string
+}
+
+export const ProductListing = async ({
+                                       category_id,
+                                       collection_id,
+                                       showSidebar = true,
+                                       locale
+                                     }: ProductListingProps) => {
+
+  const { response } = await listProducts({
     countryCode: locale,
-    sortBy: "created_at",
-    queryParams: {
-      limit: PRODUCT_LIMIT,
-    },
+    category_id: category_id,
+    // FIXED PROP NAME HERE: collectionId -> collection_id
+    collection_id: collection_id,
+    queryParams: { limit: 20 },
   })
 
-  const { products } = await response
-
-  const count = products.length
-
-  const pages = Math.ceil(count / PRODUCT_LIMIT) || 1
+  if (!response.products.length) {
+    return (
+      <div className="py-10 text-center text-gray-500">
+        No se encontraron productos.
+      </div>
+    )
+  }
 
   return (
-    <div className="py-4">
-      <ProductListingHeader total={count} />
-      <div className="hidden md:block">
-        <ProductListingActiveFilters />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 mt-6 gap-4">
-        {showSidebar && <ProductSidebar />}
-        <section className={showSidebar ? "col-span-3" : "col-span-4"}>
-          <div className="flex flex-wrap gap-4">
-            <ProductsList products={products} />
-          </div>
-          <ProductsPagination pages={pages} />
-        </section>
-      </div>
+    <div className="w-full">
+      {/* 5 Column Grid */}
+      <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-3 gap-y-6">
+        {response.products.map((product) => (
+          <li key={product.id}>
+            <ProductCard product={product} />
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
