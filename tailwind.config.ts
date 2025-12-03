@@ -9,6 +9,11 @@ export default {
   ],
   theme: {
     extend: {
+      // 1. CHAITO FONT CONFIGURATION
+      // This connects the font we loaded in layout.tsx to Tailwind's 'font-sans' class
+      fontFamily: {
+        sans: ["var(--font-montserrat)", "sans-serif"],
+      },
       backgroundColor: {
         primary: "rgba(var(--bg-primary))",
         secondary: "rgba(var(--bg-secondary))",
@@ -69,6 +74,27 @@ export default {
         },
       },
       colors: {
+        // 2. CHAITO BRAND COLORS (Direct Access)
+        // Allows you to use 'bg-brand-700' for Purple or 'text-green-400' for Chaito Green
+        brand: {
+          25: "rgba(var(--brand-25))",
+          50: "rgba(var(--brand-50))",
+          100: "rgba(var(--brand-100))",
+          200: "rgba(var(--brand-200))",
+          300: "rgba(var(--brand-300))",
+          400: "rgba(var(--brand-400))",
+          500: "rgba(var(--brand-500))",
+          600: "rgba(var(--brand-600))",
+          700: "rgba(var(--brand-700))", // Primary Purple
+          800: "rgba(var(--brand-800))",
+          900: "rgba(var(--brand-900))",
+        },
+        green: {
+          400: "rgba(var(--green-400))", // Chaito Green
+          500: "rgba(var(--green-500))",
+          600: "rgba(var(--green-600))",
+        },
+        // Existing Semantic mappings
         primary: "rgba(var(--content-primary))",
         secondary: "rgba(var(--content-secondary))",
         tertiary: "rgba(var(--content-tertiary))",

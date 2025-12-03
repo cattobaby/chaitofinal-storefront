@@ -1,11 +1,11 @@
 "use client"
 
 import {
-    Listbox,
-    ListboxButton,
-    ListboxOption,
-    ListboxOptions,
-    Transition,
+  Listbox,
+  ListboxButton,
+  ListboxOption,
+  ListboxOptions,
+  Transition,
 } from "@headlessui/react"
 import { Fragment, useEffect, useMemo, useState } from "react"
 import ReactCountryFlag from "react-country-flag"
@@ -16,172 +16,155 @@ import { HttpTypes } from "@medusajs/types"
 import { updateRegionWithValidation } from "@/lib/data/cart"
 import { Label } from "@medusajs/ui"
 import { toast } from "@/lib/helpers/toast"
+import { ArrowDownIcon } from "@/icons"
 
 type CountryOption = {
-    country: string
-    region: string
-    label: string
+  country: string
+  region: string
+  label: string
 }
 
 type CountrySelectProps = {
-    regions: HttpTypes.StoreRegion[]
+  regions: HttpTypes.StoreRegion[]
 }
 
 const CountrySelect = ({ regions }: CountrySelectProps) => {
-    const [current, setCurrent] = useState<
-        | { country: string | undefined; region: string; label: string | undefined }
-        | undefined
-    >(undefined)
+  const [current, setCurrent] = useState<
+    | { country: string | undefined; region: string; label: string | undefined }
+    | undefined
+  >(undefined)
 
-    const { locale: countryCode } = useParams()
-    const router = useRouter()
-    const currentPath = usePathname().split(`/${countryCode}`)[1]
+  const { locale: countryCode } = useParams()
+  const router = useRouter()
+  const currentPath = usePathname().split(`/${countryCode}`)[1]
 
-    // ────────────────────────────────────────────────────────────────
-    // DEBUG: incoming props
-    // ────────────────────────────────────────────────────────────────
-    useEffect(() => {
-        console.log("[CountrySelector] mount", {
-            countryCodeParam: countryCode,
-            currentPath,
-            regionsCount: regions?.length ?? 0,
-            regionsSample: regions?.slice(0, 2)?.map((r) => ({
-                id: r.id,
-                countries: r.countries?.length ?? 0,
-                sampleCountries: r.countries?.slice(0, 3)?.map((c) => c.iso_2),
-            })),
+  useEffect(() => {
+    // Debugging logs removed for production clarity
+  }, [])
+
+  const options = useMemo(() => {
+    const opts =
+      regions
+        ?.map((r) => {
+          return r.countries?.map((c) => ({
+            country: c.iso_2,
+            region: r.id,
+            label: c.display_name,
+          }))
         })
-    }, []) // eslint-disable-line
+        .flat()
+        .sort((a, b) => (a?.label ?? "").localeCompare(b?.label ?? "")) || []
+    return opts
+  }, [regions])
 
-    const options = useMemo(() => {
-        const opts =
-            regions
-                ?.map((r) => {
-                    return r.countries?.map((c) => ({
-                        country: c.iso_2,
-                        region: r.id,
-                        label: c.display_name,
-                    }))
-                })
-                .flat()
-                .sort((a, b) => (a?.label ?? "").localeCompare(b?.label ?? "")) || []
-
-        console.log("[CountrySelector] options built", {
-            total: opts.length,
-            first10: opts.slice(0, 10),
-        })
-        return opts
-    }, [regions])
-
-    useEffect(() => {
-        if (countryCode) {
-            const option = options?.find((o) => o?.country === countryCode)
-            console.log("[CountrySelector] effect countryCode → setCurrent", {
-                countryCode,
-                matched: option,
-            })
-            setCurrent(option)
-        } else {
-            console.log("[CountrySelector] effect countryCode missing; not setting current")
-        }
-    }, [options, countryCode])
-
-    const handleChange = async (option: CountryOption) => {
-        console.log("[CountrySelector] onChange → selected option", option)
-
-        try {
-            const result = await updateRegionWithValidation(option.country, currentPath)
-            console.log("[CountrySelector] updateRegionWithValidation result", result)
-
-            if (result.removedItems.length > 0) {
-                const itemsList = result.removedItems.join(", ")
-                toast.info({
-                    title: "Cart updated",
-                    description: `${itemsList} ${result.removedItems.length === 1 ? "is" : "are"} not available in ${option.label} and ${result.removedItems.length === 1 ? "was" : "were"} removed from your cart.`,
-                })
-            }
-
-            // Navigate to new region
-            console.log("[CountrySelector] router.push →", result.newPath)
-            router.push(result.newPath)
-            router.refresh()
-        } catch (error: any) {
-            console.error("[CountrySelector] updateRegionWithValidation error", error)
-            toast.error({
-                title: "Error switching region",
-                description: error?.message || "Failed to update region. Please try again.",
-            })
-        }
+  useEffect(() => {
+    if (countryCode) {
+      const option = options?.find((o) => o?.country === countryCode)
+      setCurrent(option)
     }
+  }, [options, countryCode])
 
-    return (
-        <div className="md:flex gap-2 items-center justify-end relative">
-            <Label className="label-md hidden md:block">Shipping to</Label>
-            <div>
-                <Listbox
-                    onChange={handleChange}
-                    defaultValue={
-                        countryCode
-                            ? options?.find((o) => o?.country === countryCode)
-                            : undefined
-                    }
-                >
-                    <ListboxButton className="relative w-16 flex justify-between items-center h-10 bg-component-secondary text-left  cursor-default focus:outline-none border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular">
-                        <div className="txt-compact-small flex items-start mx-auto">
-                            {current && (
-                                <span className="txt-compact-small flex items-center gap-x-2">
+  const handleChange = async (option: CountryOption) => {
+    try {
+      const result = await updateRegionWithValidation(option.country, currentPath)
+      if (result.removedItems.length > 0) {
+        const itemsList = result.removedItems.join(", ")
+        toast.info({
+          title: "Cart updated",
+          description: `${itemsList} ${result.removedItems.length === 1 ? "is" : "are"} not available in ${option.label} and ${result.removedItems.length === 1 ? "was" : "were"} removed from your cart.`,
+        })
+      }
+      router.push(result.newPath)
+      router.refresh()
+    } catch (error: any) {
+      console.error("[CountrySelector] updateRegionWithValidation error", error)
+      toast.error({
+        title: "Error switching region",
+        description: error?.message || "Failed to update region. Please try again.",
+      })
+    }
+  }
+
+  return (
+    <div className="md:flex gap-2 items-center justify-end relative z-50">
+      {/* FIX: Text white for header visibility */}
+      <Label className="label-md hidden md:block text-white/90">Shipping to</Label>
+      <div>
+        <Listbox
+          onChange={handleChange}
+          defaultValue={
+            countryCode
+              ? options?.find((o) => o?.country === countryCode)
+              : undefined
+          }
+        >
+          {/* FIX: Button styled for header (transparent bg, white text) */}
+          <ListboxButton className="relative flex items-center gap-2 h-10 text-white hover:bg-brand-800 px-3 py-1 rounded-full transition-colors cursor-pointer focus:outline-none border-none">
+            <div className="flex items-center gap-2">
+              {current && (
+                <>
                   {/* @ts-ignore */}
-                                    <ReactCountryFlag
-                                        alt={`${current.country?.toUpperCase()} flag`}
-                                        svg
-                                        style={{
-                                            width: "16px",
-                                            height: "16px",
-                                        }}
-                                        countryCode={current.country ?? ""}
-                                    />
-                                    {current.country?.toUpperCase()}
-                </span>
-                            )}
-                        </div>
-                    </ListboxButton>
-                    <div className="flex relative w-16">
-                        <Transition
-                            as={Fragment}
-                            leave="transition ease-in duration-150"
-                            leaveFrom="opacity-100"
-                            leaveTo="opacity-0"
-                        >
-                            <ListboxOptions className="no-scrollbar absolute z-20 overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-none sm:text-sm">
-                                {options?.map((o, index) => {
-                                    return (
-                                        <ListboxOption
-                                            key={index}
-                                            value={o}
-                                            className="cursor-pointer select-none relative w-16 hover:bg-gray-50 py-2 border-b"
-                                        >
-                      <span className="flex items-center gap-x-2 pl-2">
-                        {/* @ts-ignore */}
-                          <ReactCountryFlag
-                              svg
-                              style={{
-                                  width: "16px",
-                                  height: "16px",
-                              }}
-                              countryCode={o?.country ?? ""}
-                          />{" "}
-                          {o?.country?.toUpperCase()}
-                      </span>
-                                        </ListboxOption>
-                                    )
-                                })}
-                            </ListboxOptions>
-                        </Transition>
-                    </div>
-                </Listbox>
+                  <ReactCountryFlag
+                    alt={`${current.country?.toUpperCase()} flag`}
+                    svg
+                    style={{
+                      width: "20px",
+                      height: "20px",
+                      borderRadius: "50%", // Circle flag
+                      objectFit: "cover"
+                    }}
+                    countryCode={current.country ?? ""}
+                  />
+                  <span className="text-sm font-bold uppercase">{current.country}</span>
+                  <ArrowDownIcon color="white" size={14} />
+                </>
+              )}
             </div>
-        </div>
-    )
+          </ListboxButton>
+
+          <div className="flex relative w-16">
+            <Transition
+              as={Fragment}
+              leave="transition ease-in duration-150"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              {/* FIX: Options styled for readability (white bg, dark text) */}
+              <ListboxOptions className="absolute right-0 z-[999] mt-2 w-[240px] overflow-auto bg-white text-neutral-900 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none max-h-[400px] py-1">
+                {options?.map((o, index) => {
+                  return (
+                    <ListboxOption
+                      key={index}
+                      value={o}
+                      className={({ active }) =>
+                        `cursor-pointer select-none relative py-3 px-4 flex items-center gap-3 transition-colors border-b border-neutral-100 last:border-0 ${
+                          active ? "bg-brand-50 text-brand-900" : "text-neutral-900"
+                        }`
+                      }
+                    >
+                      {/* @ts-ignore */}
+                      <ReactCountryFlag
+                        svg
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                        }}
+                        countryCode={o?.country ?? ""}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{o.label}</span>
+                        <span className="text-[10px] text-neutral-500 uppercase">{o.country}</span>
+                      </div>
+                    </ListboxOption>
+                  )
+                })}
+              </ListboxOptions>
+            </Transition>
+          </div>
+        </Listbox>
+      </div>
+    </div>
+  )
 }
 
 export default CountrySelect

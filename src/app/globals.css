@@ -55,8 +55,14 @@
 .display-md {
     @apply text-[64px] leading-[72px] font-medium tracking-normal max-md:text-[40px] max-md:leading-[48px];
 }
+
+/* --- LAYOUT CONTAINER UPDATE --- */
+/* This controls the width of your Header, Footer, and Page Content */
 .container {
-    @apply px-4 md:px-5 max-w-full w-full lg:py-8 py-4 lg:px-8;
+    /* 1. max-w-[1440px]: Stops content from stretching endlessly on big screens */
+    /* 2. mx-auto: Centers the container in the middle of the screen */
+    /* 3. px-4 md:px-8: Adds the "gutters" (side padding) you requested */
+    @apply max-w-[1440px] w-full mx-auto px-4 md:px-8 lg:py-8 py-4;
 }
 
 /* Atoms components */

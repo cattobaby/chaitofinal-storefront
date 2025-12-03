@@ -1,5 +1,5 @@
 :root {
-    /* Neutral colors are the foundation of the color system. Almost everything in UI design — text, fields, backgrounds, dividers — are usually gray. */
+    /* Neutral colors (Grays) - Kept standard for legibility */
     --neutral-0: 255, 255, 255;
     --neutral-25: 247, 247, 247;
     --neutral-50: 238, 238, 238;
@@ -14,20 +14,22 @@
     --neutral-900: 22, 22, 22;
     --neutral-1000: 9, 9, 9;
 
-    /* Brand colors are used across all interactive elements such as buttons, links, inputs, etc. This color can define the overall feel and can elicit emotion. */
-    --brand-25: 247, 247, 247;
-    --brand-50: 238, 238, 238;
-    --brand-100: 226, 226, 226;
-    --brand-200: 198, 198, 198;
-    --brand-300: 163, 163, 163;
-    --brand-400: 115, 115, 115;
-    --brand-500: 82, 82, 82;
-    --brand-600: 64, 64, 64;
-    --brand-700: 27, 27, 27;
-    --brand-800: 22, 22, 22;
-    --brand-900: 9, 9, 9;
-    
-    /* Red colors are used across error states and in "destructive" actions. */
+    /* BRAND COLORS (CHAITO PURPLE) */
+    /* Base is #4A0D5C (74, 13, 92) mapped to --brand-700 or --brand-900 typically used for primary buttons */
+
+    --brand-25: 249, 245, 250;   /* Very light purple tint */
+    --brand-50: 243, 235, 245;
+    --brand-100: 230, 215, 235;
+    --brand-200: 200, 170, 210;
+    --brand-300: 170, 130, 185;
+    --brand-400: 140, 90, 160;
+    --brand-500: 110, 50, 135;
+    --brand-600: 92, 20, 110;
+    --brand-700: 74, 13, 92;     /* YOUR PRIMARY PURPLE */
+    --brand-800: 55, 10, 70;     /* Darker for Hover */
+    --brand-900: 37, 5, 48;      /* Darkest for Pressed/Active */
+
+    /* Red colors (Error states) */
     --red-25: 254, 243, 242;
     --red-50: 254, 228, 226;
     --red-100: 255, 205, 201;
@@ -40,20 +42,21 @@
     --red-800: 128, 35, 28;
     --red-900: 70, 13, 9;
 
-    /* Green colors communicate a positive action, positive trend, or a successful confirmation. */
-    --green-25: 239, 253, 244;
-    --green-50: 220, 252, 231;
-    --green-100: 187, 247, 208;
-    --green-200: 135, 239, 172;
-    --green-300: 73, 222, 128;
-    --green-400: 34, 197, 93;
-    --green-500: 23, 163, 74;
-    --green-600: 23, 128, 61;
-    --green-700: 22, 101, 52;
-    --green-800: 20, 83, 45;
-    --green-900: 5, 46, 22;
+    /* GREEN COLORS (CHAITO GREEN) */
+    /* Base is #A3BD31 (163, 189, 49) */
+    --green-25: 245, 250, 235;
+    --green-50: 235, 245, 215;
+    --green-100: 215, 235, 175;
+    --green-200: 195, 225, 135;
+    --green-300: 175, 215, 95;
+    --green-400: 163, 189, 49;   /* YOUR PRIMARY GREEN */
+    --green-500: 140, 165, 40;
+    --green-600: 115, 140, 30;
+    --green-700: 90, 115, 20;
+    --green-800: 65, 90, 10;
+    --green-900: 40, 65, 5;
 
-    /* Yellow colors may indicate a problem or that an action is potentially destructive or "on-hold". */
+    /* Yellow colors (Warning) */
     --yellow-25: 255, 251, 237;
     --yellow-50: 255, 247, 212;
     --yellow-100: 255, 235, 168;
@@ -66,7 +69,7 @@
     --yellow-800: 126, 69, 16;
     --yellow-900: 68, 33, 6;
 
-    /* Blue colors are used to provide users with information about any actions or states of an application or system. */
+    /* Blue colors (Info) */
     --blue-25: 245, 250, 255;
     --blue-50: 235, 244, 255;
     --blue-100: 204, 228, 255;
@@ -80,6 +83,8 @@
     --blue-900: 0, 24, 51;
 }
 
+/* The following block maps the component logic to the colors above.
+   We updated --bg-action-primary to define button colors. */
 :root {
     --bg-primary: var(--neutral-0);
     --bg-secondary: var(--neutral-25);
@@ -92,9 +97,11 @@
     --bg-component-secondary-hover: var(--neutral-50);
     --bg-component-secondary-pressed: var(--neutral-100);
 
-    --bg-action-primary: var(--brand-900);
+    /* BUTTONS AND PRIMARY ACTIONS (Uses Chaito Purple) */
+    --bg-action-primary: var(--brand-700);
     --bg-action-primary-hover: var(--brand-800);
-    --bg-action-primary-pressed: var(--brand-700);
+    --bg-action-primary-pressed: var(--brand-900);
+
     --bg-action-secondary: rgba(var(--neutral-1000), 0.05);
     --bg-action-secondary-hover: rgba(var(--neutral-1000), 0.1);
     --bg-action-secondary-pressed: rgba(var(--neutral-1000), 0.2);
@@ -109,9 +116,9 @@
     --bg-negative-secondary-hover: var(--red-100);
     --bg-negative-secondary-pressed: var(--red-200);
 
-    --bg-positive-primary: var(--green-700);
-    --bg-positive-primary-hover: var(--green-800);
-    --bg-positive-primary-pressed: var(--green-900);
+    --bg-positive-primary: var(--green-400); /* Chaito Green for success backgrounds */
+    --bg-positive-primary-hover: var(--green-500);
+    --bg-positive-primary-pressed: var(--green-600);
     --bg-positive-secondary: var(--green-50);
     --bg-positive-secondary-hover: var(--green-100);
     --bg-positive-secondary-pressed: var(--green-200);
@@ -129,9 +136,9 @@
     --content-secondary: var(--neutral-500);
     --content-tertiary: var(--neutral-0);
 
-    --content-action-primary: var(--brand-900);
+    --content-action-primary: var(--brand-700);
     --content-action-primary-hover: var(--brand-800);
-    --content-action-primary-pressed: var(--brand-700);
+    --content-action-primary-pressed: var(--brand-900);
     --content-action-on-primary: var(--brand-25);
     --content-action-on-secondary: var(--neutral-1000);
     --content-action-on-tertiary: var(--neutral-0);
@@ -152,7 +159,7 @@
 
     --border-primary: var(--neutral-50);
     --border-secondary: var(--neutral-800);
-    --border-action: var(--brand-900);
+    --border-action: var(--brand-700);
     --border-negative-primary: var(--red-700);
     --border-negative-secondary: var(--red-200);
     --border-positive-primary: var(--green-800);

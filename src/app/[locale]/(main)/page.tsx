@@ -1,10 +1,6 @@
 import {
-  BannerSection,
-  BlogSection,
   Hero,
-  HomeCategories,
-  HomeProductSection,
-  ShopByStyleSection,
+  ProductListing, // We import the main product grid component
 } from "@/components/sections"
 
 import type { Metadata } from "next"
@@ -14,12 +10,11 @@ import { listRegions } from "@/lib/data/regions"
 import { toHreflang } from "@/lib/helpers/hreflang"
 
 export async function generateMetadata({
-  params,
-}: {
+                                         params,
+                                       }: {
   params: Promise<{ locale: string }>
 }): Promise<Metadata> {
   const { locale } = await params
-
   const headersList = await headers()
   const host = headersList.get("host")
   const protocol = headersList.get("x-forwarded-proto") || "https"
@@ -44,94 +39,61 @@ export async function generateMetadata({
       return acc
     }, {})
   } catch {
-    // Fallback: only current locale
     languages = { [toHreflang(locale)]: `${baseUrl}/${locale}` }
   }
 
-  const title = "Home"
-  const description =
-    "Welcome to Mercur B2C Demo! Create a modern marketplace that you own and customize in every aspect with high-performance, fully customizable storefront."
+  const title = "Chaito"
+  const description = "Tu Marketplace de confianza en Bolivia."
   const ogImage = "/B2C_Storefront_Open_Graph.png"
   const canonical = `${baseUrl}/${locale}`
 
   return {
     title,
     description,
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-image-preview": "large",
-        "max-video-preview": -1,
-        "max-snippet": -1,
-      },
-    },
+    robots: { index: true, follow: true },
     alternates: {
       canonical,
-      languages: {
-        ...languages,
-        "x-default": baseUrl,
-      },
+      languages: { ...languages, "x-default": baseUrl },
     },
     openGraph: {
-      title: `${title} | ${
-        process.env.NEXT_PUBLIC_SITE_NAME ||
-        "Mercur B2C Demo - Marketplace Storefront"
-      }`,
+      title: `${title} | Marketplace`,
       description,
       url: canonical,
-      siteName:
-        process.env.NEXT_PUBLIC_SITE_NAME ||
-        "Mercur B2C Demo - Marketplace Storefront",
+      siteName: "Chaito Marketplace",
       type: "website",
       images: [
         {
           url: ogImage.startsWith("http") ? ogImage : `${baseUrl}${ogImage}`,
           width: 1200,
           height: 630,
-          alt:
-            process.env.NEXT_PUBLIC_SITE_NAME ||
-            "Mercur B2C Demo - Marketplace Storefront",
+          alt: "Chaito Marketplace",
         },
       ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage.startsWith("http") ? ogImage : `${baseUrl}${ogImage}`],
     },
   }
 }
 
 export default async function Home({
-  params,
-}: {
+                                     params,
+                                   }: {
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-
   const headersList = await headers()
   const host = headersList.get("host")
   const protocol = headersList.get("x-forwarded-proto") || "https"
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
-
-  const siteName =
-    process.env.NEXT_PUBLIC_SITE_NAME ||
-    "Mercur B2C Demo - Marketplace Storefront"
+  const siteName = "Chaito Marketplace"
 
   return (
-    <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start text-primary">
+    <main className="flex flex-col gap-6 bg-neutral-50 pb-12">
       <link
         rel="preload"
         as="image"
-        href="/images/hero/Image.jpg"
-        imageSrcSet="/images/hero/Image.jpg 700w"
+        href="/images/hero/image1.jpg"
+        imageSrcSet="/images/hero/image1.jpg 700w"
         imageSizes="(min-width: 1024px) 50vw, 100vw"
       />
-      {/* Organization JSON-LD */}
       <Script
         id="ld-org"
         type="application/ld+json"
@@ -145,44 +107,27 @@ export default async function Home({
           }),
         }}
       />
-      {/* WebSite JSON-LD */}
-      <Script
-        id="ld-website"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
-            name: siteName,
-            url: `${baseUrl}/${locale}`,
-            inLanguage: toHreflang(locale),
-          }),
-        }}
-      />
 
-      <Hero
-        image="/images/hero/Image.jpg"
-        heading="Snag your style in a flash"
-        paragraph="Buy, sell, and discover pre-loved gems from the trendiest brands."
-        buttons={[
-          { label: "Buy now", path: "/categories" },
-          {
-            label: "Sell now",
-            path:
-              process.env.NEXT_PUBLIC_VENDOR_URL ||
-              "https://vendor.mercurjs.com",
-          },
-        ]}
-      />
-      <div className="px-4 lg:px-8 w-full">
-        <HomeProductSection heading="trending listings" locale={locale} home />
+      {/* 1. THIN BANNER (Contained & Padding) */}
+      <div className="container mx-auto px-4 lg:px-8 mt-6">
+        <Hero
+          image="/images/hero/image1.jpg"
+          heading="" // Empty heading for non-invasive look
+          paragraph="" // Empty paragraph
+          buttons={[]} // No buttons
+        />
       </div>
-      <div className="px-4 lg:px-8 w-full">
-        <HomeCategories heading="SHOP BY CATEGORY" />
+
+      {/* 2. PRODUCT FEED (Dense Grid) */}
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="flex flex-col gap-4">
+          <h2 className="text-xl font-bold uppercase tracking-wide text-brand-700">
+            Recomendados
+          </h2>
+          {/* Reuse the category listing component but for the homepage */}
+          <ProductListing showSidebar={false} locale={locale} />
+        </div>
       </div>
-      <BannerSection />
-      <ShopByStyleSection />
-      <BlogSection />
     </main>
   )
 }

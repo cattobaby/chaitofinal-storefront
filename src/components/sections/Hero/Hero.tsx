@@ -1,63 +1,67 @@
 import Image from "next/image"
-
-import tailwindConfig from "../../../../tailwind.config"
-import { ArrowRightIcon } from "@/icons"
-import Link from "next/link"
+import { Button } from "@/components/atoms"
+import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
+import { cn } from "@/lib/utils"
 
 type HeroProps = {
   image: string
-  heading: string
-  paragraph: string
-  buttons: { label: string; path: string }[]
+  heading?: string
+  paragraph?: string
+  buttons?: {
+    label: string
+    path: string
+  }[]
 }
 
 export const Hero = ({ image, heading, paragraph, buttons }: HeroProps) => {
   return (
-    <section className="w-full flex container mt-5 flex-col lg:flex-row text-primary">
-      <Image
-        src={decodeURIComponent(image)}
-        width={700}
-        height={600}
-        alt={`Hero banner - ${heading}`}
-        className="w-full order-2 lg:order-1"
-        priority
-        fetchPriority="high"
-        quality={50}
-        sizes="(min-width: 1024px) 50vw, 100vw"
-      />
-      <div className="w-full lg:order-2">
-        <div className="border rounded-sm w-full px-6 flex items-end h-[calc(100%-144px)]">
-          <div>
-            <h2 className="font-bold mb-6 uppercase display-md max-w-[652px] text-4xl md:text-5xl leading-tight">
-              {heading}
-            </h2>
-            <p className="text-lg mb-8">{paragraph}</p>
+    <div className="relative w-full overflow-hidden rounded-xl shadow-sm group">
+      {/* Wildberries/Amazon Style:
+         - Fixed height on desktop (e.g., 350px)
+         - Responsive height on mobile (aspect ratio)
+         - Image covers the area
+      */}
+      <div className="relative w-full h-[200px] sm:h-[300px] lg:h-[380px]">
+        <Image
+          src={image}
+          alt="Banner"
+          fill
+          className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
+          priority
+        />
+
+        {/* Optional: Dark overlay if you decide to add text later, otherwise transparent */}
+        <div className="absolute inset-0 bg-black/10" />
+      </div>
+
+      {/* Content Overlay (Only renders if text exists) */}
+      {(heading || paragraph) && (
+        <div className="absolute inset-0 flex flex-col justify-center items-start p-8 sm:p-12 lg:p-16 z-10">
+          <div className="max-w-lg bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-lg">
+            {heading && (
+              <h1 className="heading-md sm:heading-lg text-brand-900 mb-2">
+                {heading}
+              </h1>
+            )}
+            {paragraph && (
+              <p className="text-secondary text-md sm:text-lg mb-6">
+                {paragraph}
+              </p>
+            )}
+            {buttons && buttons.length > 0 && (
+              <div className="flex gap-4">
+                {buttons.map((btn, index) => (
+                  <LocalizedClientLink key={index} href={btn.path}>
+                    <Button variant={index === 0 ? "filled" : "tonal"}>
+                      {btn.label}
+                    </Button>
+                  </LocalizedClientLink>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-        {buttons.length && (
-          <div className="h-[72px] lg:h-[144px] flex font-bold uppercase">
-            {buttons.map(({ label, path }) => (
-              <Link
-                key={path}
-                href={path}
-                className="group flex border rounded-sm h-full w-1/2 bg-content hover:bg-action hover:text-tertiary transition-all duration-300 p-6 justify-between items-end"
-                aria-label={label}
-                title={label}
-              >
-                <span>
-                  <span className="group-hover:inline-flex hidden">#</span>
-                  {label}
-                </span>
-
-                <ArrowRightIcon
-                  color={tailwindConfig.theme.extend.backgroundColor.primary}
-                  aria-hidden
-                />
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+      )}
+    </div>
   )
 }
