@@ -73,11 +73,33 @@ export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
 
 export async function signup(formData: FormData) {
     const password = formData.get("password") as string
-    const customerForm = {
+
+    // 👇 NEW: read gender from the form
+    const genderRaw = formData.get("gender") as string | null
+    const allowedGenders = [
+        "female",
+        "male",
+        "other",
+        "prefer_not_to_say",
+    ] as const
+
+    const gender = genderRaw && allowedGenders.includes(genderRaw as any)
+        ? (genderRaw as (typeof allowedGenders)[number])
+        : undefined
+
+    const customerForm: any = {
         email: formData.get("email") as string,
         first_name: formData.get("first_name") as string,
         last_name: formData.get("last_name") as string,
         phone: formData.get("phone") as string,
+    }
+
+    // 👇 NEW: attach metadata.gender if provided
+    if (gender) {
+        customerForm.metadata = {
+            ...(customerForm.metadata || {}),
+            gender,
+        }
     }
 
     try {
@@ -118,6 +140,7 @@ export async function signup(formData: FormData) {
         return error.toString()
     }
 }
+
 
 export async function login(formData: FormData) {
     const email = formData.get("email") as string

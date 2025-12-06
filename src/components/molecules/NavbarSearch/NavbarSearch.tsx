@@ -1,43 +1,145 @@
+// storefront/src/components/molecules/NavbarSearch/NavbarSearch.tsx
 "use client"
 
-import { Input } from "@/components/atoms"
+import { useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { SearchIcon } from "@/icons"
-import { useSearchParams, useRouter } from "next/navigation"
-import { useState } from "react"
-import { VisualSearch } from "../VisualSearch/VisualSearch" // Import the component
+import { Camera, Spinner } from "@medusajs/icons"
+
+const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/heic"]
 
 export const NavbarSearch = () => {
     const searchParams = useSearchParams()
     const router = useRouter()
+
+    // Texto de búsqueda normal
     const [search, setSearch] = useState(searchParams.get("query") || "")
 
+    // Estado para búsqueda visual
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const [isUploading, setIsUploading] = useState(false)
+
+    // Submit de texto
     const submitHandler = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        if (search) {
-            router.push(`/categories?query=${search}`)
+        if (search.trim()) {
+            router.push(`/categories?query=${encodeURIComponent(search.trim())}`)
         } else {
             router.push(`/categories`)
         }
     }
 
+    // Handler de archivo (VisualSearch original + publishable key)
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (!ACCEPTED_TYPES.includes(file.type)) {
+            alert("Please upload a valid image (PNG, JPG, WEBP)")
+            return
+        }
+
+        setIsUploading(true)
+
+        try {
+            const formData = new FormData()
+            formData.append("image", file)
+
+            const backendUrl =
+                process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
+
+            const publishableKey =
+                process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+
+            if (!publishableKey) {
+                console.warn(
+                    "[visual search] Missing NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY, request may fail"
+                )
+            }
+
+            const response = await fetch(
+                `${backendUrl}/store/vision-search?limit=20`,
+                {
+                    method: "POST",
+                    headers: {
+                        "x-publishable-api-key": publishableKey,
+                    },
+                    body: formData,
+                }
+            )
+
+            if (!response.ok) {
+                throw new Error("Failed to search")
+            }
+
+            const data = await response.json()
+
+            if (data.matches && data.matches.length > 0) {
+                const ids = data.matches.map((m: any) => m.id).join(",")
+                router.push(`/categories?visual_ids=${ids}`)
+            } else {
+                alert("No similar products found.")
+            }
+        } catch (err) {
+            console.error("Visual search error", err)
+            alert("Something went wrong searching by image.")
+        } finally {
+            setIsUploading(false)
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ""
+            }
+        }
+    }
+
     return (
-        <form className="w-full max-w-[600px] relative" method="POST" onSubmit={submitHandler}>
-            <div className="relative w-full flex items-center">
-                <Input
-                    icon={<SearchIcon className="text-brand-700" />}
-                    placeholder="Buscar en Chaito..."
+        <form className="w-full" method="POST" onSubmit={submitHandler}>
+            {/* input hidden para la cámara */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept={ACCEPTED_TYPES.join(",")}
+                onChange={handleFileSelect}
+            />
+
+            {/* Pastilla completa */}
+            <div className="flex w-full items-center rounded-full bg-white px-4 py-2.5 shadow-sm">
+                {/* Texto a la izquierda */}
+                <input
                     value={search}
-                    changeValue={setSearch}
-                    // Add padding-right (pr-10) to make room for the camera button
-                    className="w-full bg-white text-neutral-900 placeholder:text-neutral-400 border-none rounded-full py-2.5 shadow-sm pr-12"
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Buscar en Chaito..."
+                    className="flex-1 bg-transparent text-sm md:text-base text-neutral-900 placeholder:text-neutral-400 outline-none border-none"
                 />
 
-                {/* Position the VisualSearch button absolutely on the right */}
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <VisualSearch />
+                {/* Íconos a la derecha, dentro de la misma pastilla */}
+                <div className="flex items-center gap-3 pl-3">
+                    {/* Botón buscar */}
+                    <button
+                        type="submit"
+                        className="text-neutral-500 hover:text-brand-700 transition-colors"
+                        aria-label="Buscar"
+                    >
+                        <SearchIcon className="w-5 h-5" />
+                    </button>
+
+                    {/* Botón cámara */}
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="text-neutral-500 hover:text-brand-700 transition-colors disabled:opacity-60"
+                        aria-label="Buscar por imagen"
+                        title="Buscar por imagen"
+                    >
+                        {isUploading ? (
+                            <Spinner className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <Camera className="w-5 h-5" />
+                        )}
+                    </button>
                 </div>
             </div>
-            <input type="submit" className="hidden" />
         </form>
     )
 }
