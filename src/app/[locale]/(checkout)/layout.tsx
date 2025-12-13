@@ -31,7 +31,7 @@ export default async function RootLayout({
                         <LocalizedClientLink href="/cart">
                             <Button variant="tonal" className="flex items-center gap-2">
                                 <CollapseIcon className="rotate-90" />
-                                <span className="hidden lg:block">Back to cart</span>
+                                <span className="hidden lg:block">Volver al carrito</span>
                             </Button>
                         </LocalizedClientLink>
                     </div>

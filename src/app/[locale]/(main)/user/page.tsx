@@ -16,14 +16,17 @@ export default async function UserPage() {
                 <UserNavigation />
                 <div className="md:col-span-3 space-y-4">
                     <div>
-                        <h1 className="heading-xl uppercase">Welcome {user.first_name}</h1>
-                        <p className="label-md">Your account is ready to go!</p>
+                        <h1 className="heading-xl uppercase">Bienvenido {user.first_name}</h1>
+                        <p className="label-md">¡Tu cuenta está lista para usarse!</p>
                     </div>
 
                     {wallet && (
-                        <div className="inline-flex items-baseline gap-2 rounded-md bg-primary/5 px-3 py-2">
-                            <span className="label-md uppercase">Points</span>
-                            <span className="heading-md">
+                        /* UPDATED: Changed from bg-primary/5 to bg-green-50 to highlight value/money */
+                        <div className="inline-flex items-baseline gap-2 rounded-md bg-green-50 border border-green-200 px-4 py-2">
+                            {/* UPDATED: Added text-green-800 */}
+                            <span className="label-md uppercase text-green-800">Puntos</span>
+                            {/* UPDATED: Added text-green-700 */}
+                            <span className="heading-md text-green-700">
                                 {wallet.points.toLocaleString()}
                             </span>
                         </div>

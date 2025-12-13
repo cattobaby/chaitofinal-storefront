@@ -42,7 +42,7 @@ export const Cart = async () => {
                     />
                     <LocalizedClientLink href="/checkout?step=address">
                         <Button className="w-full py-3 flex justify-center items-center">
-                            Go to checkout
+                            Ir a finalizar compra
                         </Button>
                     </LocalizedClientLink>
                 </div>

@@ -144,11 +144,12 @@ const Review = ({ cart }: { cart: any }) => {
             </div>
 
             {isBnb && bnbQrBase64 && (
-                <div className="w-full mb-6 border rounded-sm p-4 bg-ui-bg-subtle">
-                    <h3 className="text-lg font-semibold mb-2">
+                /* UPDATED: Changed from bg-ui-bg-subtle to bg-green-50 and border-green-200 to highlight Payment/Money Action */
+                <div className="w-full mb-6 border border-green-200 rounded-sm p-4 bg-green-50">
+                    <h3 className="text-lg font-semibold mb-2 text-green-900">
                         Paga con QR del Banco Nacional de Bolivia
                     </h3>
-                    <p className="text-sm text-ui-fg-subtle mb-4">
+                    <p className="text-sm text-green-800 mb-4">
                         Escanea este código con la app del BNB para pagar tu pedido.
                         Después de que el banco marque el QR como usado, podrás finalizar tu
                         compra.
@@ -157,11 +158,11 @@ const Review = ({ cart }: { cart: any }) => {
                         <img
                             src={`data:image/png;base64,${bnbQrBase64}`}
                             alt="QR de pago BNB"
-                            className="w-48 h-48"
+                            className="w-48 h-48 mix-blend-multiply" // Added mix-blend to ensure white bg of QR doesn't clash if green tint is strong
                         />
                     </div>
                     {bnbQrId && (
-                        <p className="text-xs text-ui-fg-muted text-center">
+                        <p className="text-xs text-green-800 text-center">
                             ID de pago BNB: {bnbQrId}
                         </p>
                     )}

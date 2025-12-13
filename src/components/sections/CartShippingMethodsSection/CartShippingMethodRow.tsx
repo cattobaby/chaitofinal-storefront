@@ -45,7 +45,7 @@ export const CartShippingMethodRow = ({
     return (
         <div className="mb-4 border rounded-md p-4 flex items-center justify-between">
             <div>
-                <Text className="txt-medium-plus text-ui-fg-base mb-1">Method</Text>
+                <Text className="txt-medium-plus text-ui-fg-base mb-1">Método</Text>
                 <Text className="txt-medium text-ui-fg-subtle">
                     {method?.name}{" "}
                     {convertToLocale({

@@ -66,7 +66,7 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
         default:
             return (
                 <Button disabled className="w-full">
-                    Select a payment method
+                    Selecciona un método de pago
                 </Button>
             )
     }
@@ -180,7 +180,7 @@ const StripePaymentButton = ({
                 className="w-full"
                 data-testid={dataTestId}
             >
-                Place order
+                Realizar pedido
             </Button>
             <ErrorMessage
                 error={errorMessage}
@@ -231,7 +231,7 @@ const ManualTestPaymentButton = ({
                 loading={submitting}
                 data-testid={dataTestId}
             >
-                Place order
+                Realizar pedido
             </Button>
             <ErrorMessage
                 error={errorMessage}

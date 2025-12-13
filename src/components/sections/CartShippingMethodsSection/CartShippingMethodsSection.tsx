@@ -69,12 +69,12 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart }) => {
         getDeliveryQuote(cart.id)
             .then((q) => {
                 if (cancelled) return
-                if (!q) setError("Delivery is not available for your address right now.")
+                if (!q) setError("El envío no está disponible para tu dirección en este momento.")
                 else setQuote(q)
             })
             .catch((e: any) => {
                 if (cancelled) return
-                setError(e?.message || "Could not calculate delivery price.")
+                setError(e?.message || "No se pudo calcular el precio del envío.")
             })
             .finally(() => {
                 if (!cancelled) setLoadingQuote(false)
@@ -108,7 +108,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart }) => {
             })
 
             if (!res.ok) {
-                return setError(res.error?.message || "Failed to set delivery method.")
+                return setError(res.error?.message || "Error al establecer el método de envío.")
             }
 
             // ❌ DO NOT call getDeliveryQuote() again here.
@@ -119,7 +119,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart }) => {
         } catch (e: any) {
             setError(
                 e?.message?.replace("Error setting up the request: ", "") ||
-                "An error occurred"
+                "Ocurrió un error"
             )
         } finally {
             setSaving(false)
@@ -138,11 +138,11 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart }) => {
                 <div className="flex flex-row items-center justify-between mb-6">
                     <Heading level="h2" className="flex flex-row text-3xl-regular gap-x-2 items-baseline items-center">
                         {(cart.shipping_methods?.length ?? 0) > 0 && <CheckCircleSolid />}
-                        Delivery
+                        Envío
                     </Heading>
                     {isEditEnabled && (
                         <Text>
-                            <Button onClick={handleEdit} variant="tonal">Edit</Button>
+                            <Button onClick={handleEdit} variant="tonal">Editar</Button>
                         </Text>
                     )}
                 </div>
@@ -159,7 +159,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart }) => {
                             ))}
                         </div>
                     ) : (
-                        <Text className="text-ui-fg-subtle">No delivery method selected yet.</Text>
+                        <Text className="text-ui-fg-subtle">Aún no se ha seleccionado un método de envío.</Text>
                     )}
                 </div>
             </div>
@@ -170,23 +170,23 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart }) => {
         <div className="border p-4 rounded-sm bg-ui-bg-interactive">
             <div className="flex flex-row items-center justify-between mb-6">
                 <Heading level="h2" className="flex flex-row text-3xl-regular gap-x-2 items-baseline items-center">
-                    Delivery
+                    Envío
                 </Heading>
             </div>
 
             {loadingQuote && (
                 <Text className="text-md text-ui-fg-subtle mb-4">
-                    Calculating delivery price from your location…
+                    Calculando precio de envío según tu ubicación...
                 </Text>
             )}
 
             {!loadingQuote && quote && (
                 <div className="mb-4 border rounded-md p-4">
                     <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                        Deliver to your address
+                        Enviar a tu dirección
                     </Text>
                     <Text className="txt-medium text-ui-fg-subtle">
-                        Delivery{" "}
+                        Envío{" "}
                         {convertToLocale({
                             // 🔧 quote.amount is MINOR → convert before display
                             amount: toMajor(quote.amount, quote.currency_code),
@@ -216,7 +216,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart }) => {
                 disabled={!quote || loadingQuote}
                 loading={saving}
             >
-                Continue to payment
+                Continuar al pago
             </Button>
         </div>
     )

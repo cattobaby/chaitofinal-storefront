@@ -1,28 +1,40 @@
-import { OrderReturnSection } from "@/components/sections/OrderReturnSection/OrderReturnSection"
-import {
-  retrieveOrder,
-  retrieveReturnReasons,
-  retriveReturnMethods,
-} from "@/lib/data/orders"
+import { UserNavigation } from "@/components/molecules/UserNavigation/UserNavigation"
+import { OrderReturnRequests } from "@/components/sections/OrderReturnRequests/OrderReturnRequests"
+import { retrieveCustomer } from "@/lib/data/customer"
+import { getReturns, retrieveReturnReasons } from "@/lib/data/orders"
 
-export default async function ReturnOrderPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
+export default async function ReturnsPage({
+                                              searchParams,
+                                          }: {
+    searchParams: Promise<{ page: string; return: string }>
 }) {
-  const { id } = await params
+    const { order_return_requests } = await getReturns()
+    const returnReasons = await retrieveReturnReasons()
 
-  const order = (await retrieveOrder(id)) as any
-  const returnReasons = await retrieveReturnReasons()
-  const returnMethods = await retriveReturnMethods(id)
+    const user = await retrieveCustomer()
 
-  return (
-    <main className="container">
-      <OrderReturnSection
-        order={order}
-        returnReasons={returnReasons}
-        shippingMethods={returnMethods as any}
-      />
-    </main>
-  )
+    const { page, return: returnId } = await searchParams
+
+    return (
+        <main className="container">
+            <div className="grid grid-cols-1 md:grid-cols-4 mt-6 gap-5 md:gap-8">
+                <UserNavigation />
+                <div className="md:col-span-3">
+                    <h1 className="heading-md uppercase">Devoluciones</h1>
+                    <OrderReturnRequests
+                        returns={order_return_requests.sort((a, b) => {
+                            return (
+                                new Date(b.line_items[0].created_at).getTime() -
+                                new Date(a.line_items[0].created_at).getTime()
+                            )
+                        })}
+                        user={user}
+                        page={page}
+                        currentReturn={returnId || ""}
+                        returnReasons={returnReasons}
+                    />
+                </div>
+            </div>
+        </main>
+    )
 }

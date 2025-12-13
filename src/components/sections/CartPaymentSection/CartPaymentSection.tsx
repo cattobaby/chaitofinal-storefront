@@ -148,12 +148,12 @@ const CartPaymentSection = ({
                     className="flex flex-row text-3xl-regular gap-x-2 items-baseline items-center"
                 >
                     {!isOpen && paymentReady && <CheckCircleSolid />}
-                    Payment
+                    Pago
                 </Heading>
                 {isEditEnabled && (
                     <Text>
                         <Button onClick={handleEdit} variant="tonal">
-                            Edit
+                            Editar
                         </Button>
                     </Text>
                 )}
@@ -193,13 +193,13 @@ const CartPaymentSection = ({
                     {paidByGiftcard && (
                         <div className="flex flex-col w-1/3">
                             <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                                Payment method
+                                Método de pago
                             </Text>
                             <Text
                                 className="txt-medium text-ui-fg-subtle"
                                 data-testid="payment-method-summary"
                             >
-                                Gift card
+                                Tarjeta de regalo
                             </Text>
                         </div>
                     )}
@@ -219,8 +219,8 @@ const CartPaymentSection = ({
                         }
                     >
                         {!activeSession && isStripeFunc(selectedPaymentMethod)
-                            ? " Enter card details"
-                            : "Continue to review"}
+                            ? " Ingresar detalles de la tarjeta"
+                            : "Continuar a revisión"}
                     </Button>
                 </div>
 
@@ -229,7 +229,7 @@ const CartPaymentSection = ({
                         <div className="flex items-start gap-x-1 w-full">
                             <div className="flex flex-col w-1/3">
                                 <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                                    Payment method
+                                    Método de pago
                                 </Text>
                                 <Text
                                     className="txt-medium text-ui-fg-subtle"
@@ -242,7 +242,7 @@ const CartPaymentSection = ({
                             </div>
                             <div className="flex flex-col w-1/3">
                                 <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                                    Payment details
+                                    Detalles del pago
                                 </Text>
                                 <div
                                     className="flex gap-2 txt-medium text-ui-fg-subtle items-center"
@@ -256,7 +256,7 @@ const CartPaymentSection = ({
                                     <Text>
                                         {isStripeFunc(selectedPaymentMethod) && cardBrand
                                             ? cardBrand
-                                            : "Another step will appear"}
+                                            : "Aparecerá otro paso"}
                                     </Text>
                                 </div>
                             </div>
@@ -264,13 +264,13 @@ const CartPaymentSection = ({
                     ) : paidByGiftcard ? (
                         <div className="flex flex-col w-1/3">
                             <Text className="txt-medium-plus text-ui-fg-base mb-1">
-                                Payment method
+                                Método de pago
                             </Text>
                             <Text
                                 className="txt-medium text-ui-fg-subtle"
                                 data-testid="payment-method-summary"
                             >
-                                Gift card
+                                Tarjeta de regalo
                             </Text>
                         </div>
                     ) : null}
