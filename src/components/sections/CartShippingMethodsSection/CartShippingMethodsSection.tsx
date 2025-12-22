@@ -1,5 +1,3 @@
-/* /home/willman/WebstormProjects/new/new/storefront/src/components/sections/CartShippingMethodsSection/CartShippingMethodsSection.tsx */
-
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
@@ -32,9 +30,7 @@ export type StoreCardShippingMethod = HttpTypes.StoreCartShippingOption & {
     service_zone?: {
         fulfillment_set?: {
             type?: string
-            location?: {
-                address?: HttpTypes.StoreOrderAddress | null
-            }
+            location?: { address?: HttpTypes.StoreOrderAddress | null }
         }
     }
 }
@@ -50,8 +46,7 @@ function pickDeliveryOption(options: StoreCardShippingMethod[] | null) {
     return shipping[0] || null
 }
 
-function extractQuoteMinor(q: any): number | null {
-    // soporta varias formas (según wrapper / SDK / endpoint)
+function extractQuoteNumber(q: any): number | null {
     const candidates = [
         q?.amount,
         q?.calculated_amount,
@@ -59,7 +54,6 @@ function extractQuoteMinor(q: any): number | null {
         q?.shipping_option?.calculated_price?.calculated_amount,
         q?.shipping_option?.calculated_amount,
     ]
-
     for (const v of candidates) {
         if (typeof v === "number" && Number.isFinite(v)) return v
     }
@@ -73,11 +67,17 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
     const pathname = usePathname()
     const isOpen = searchParams.get("step") === "delivery"
 
-    const deliveryOptionFromStore = useMemo(() => pickDeliveryOption(availableShippingMethods), [availableShippingMethods])
+    const deliveryOptionFromStore = useMemo(
+        () => pickDeliveryOption(availableShippingMethods),
+        [availableShippingMethods]
+    )
 
     const [mode, setMode] = useState<"delivery" | "pickup">("delivery")
 
+    // Guardamos quote en MINOR (lo que llega) y en MAJOR (lo que usamos)
     const [deliveryQuoteMinor, setDeliveryQuoteMinor] = useState<number | null>(null)
+    const [deliveryQuoteMajor, setDeliveryQuoteMajor] = useState<number | null>(null)
+
     const [deliveryOptionId, setDeliveryOptionId] = useState<string | null>(null)
     const [deliveryReco, setDeliveryReco] = useState<DeliveryRecommendation | null>(null)
 
@@ -87,28 +87,6 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
-
-    useEffect(() => {
-        console.log("[storefront][ui][CartShippingMethodsSection] mount/update", {
-            debug_id,
-            cartId: cart?.id,
-            isOpen,
-            mode,
-            availableShippingMethodsCount: availableShippingMethods?.length ?? 0,
-            deliveryOptionFromStoreId: deliveryOptionFromStore?.id ?? null,
-            deliveryOptionId,
-            selectedPickupId: selectedPickup?.stock_location_id ?? null,
-        })
-    }, [
-        debug_id,
-        cart?.id,
-        isOpen,
-        mode,
-        availableShippingMethods?.length,
-        deliveryOptionFromStore?.id,
-        deliveryOptionId,
-        selectedPickup?.stock_location_id,
-    ])
 
     useEffect(() => {
         if (!isOpen) return
@@ -121,12 +99,6 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
 
         const run = async () => {
             try {
-                console.log("[storefront][ui][CartShippingMethodsSection] delivery:fetch start", {
-                    debug_id,
-                    cartId: cart.id,
-                    storeOptionId: deliveryOptionFromStore?.id ?? null,
-                })
-
                 const reco = await recommendDelivery(cart.id)
                 if (!cancelled) setDeliveryReco(reco)
 
@@ -134,24 +106,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                 const optionId: string | null = recoOptionId || deliveryOptionFromStore?.id || null
                 if (!cancelled) setDeliveryOptionId(optionId)
 
-                console.log("[storefront][ui][CartShippingMethodsSection] delivery:recommend result", {
-                    debug_id,
-                    ms: Date.now() - t0,
-                    hasReco: !!reco,
-                    recoOptionId,
-                    optionId,
-                    stock_location_id: reco?.stock_location_id ?? null,
-                    distance_km: reco?.distance_km ?? null,
-                    provider_id: (reco as any)?.provider_id ?? null,
-                })
-
-                if (!optionId) {
-                    console.warn("[storefront][ui][CartShippingMethodsSection] delivery:no optionId", {
-                        debug_id,
-                        reason: "No shipping option found (recommend + store list empty).",
-                    })
-                    return
-                }
+                if (!optionId) return
 
                 const q = await calculateShippingOptionQuote({
                     cartId: cart.id,
@@ -164,86 +119,53 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                     },
                 })
 
-                const minor = extractQuoteMinor(q)
-                if (minor == null) {
-                    throw new Error("No se pudo interpretar el quote del envío (faltan campos amount/calculated_amount).")
+                const minor = extractQuoteNumber(q)
+                if (minor == null) throw new Error("No se pudo interpretar el quote del envío.")
+
+                // ✅ TU FIX: quote viene en MINOR (1660) → lo pasamos a MAJOR (16.60)
+                const major = toMajor(minor, cart.currency_code)
+
+                if (!cancelled) {
+                    setDeliveryQuoteMinor(minor)
+                    setDeliveryQuoteMajor(major)
                 }
 
-                if (!cancelled) setDeliveryQuoteMinor(minor)
-
-                console.log("[storefront][ui][CartShippingMethodsSection] delivery:calculate ok", {
-                    debug_id,
-                    ms: Date.now() - t0,
-                    optionId,
-                    finalMinor: minor,
-                    currency_code: q?.currency_code ?? cart.currency_code,
-                })
+                console.log("[ship] delivery quote", { minor, major, ms: Date.now() - t0 })
             } catch (e: any) {
-                console.error("[storefront][ui][CartShippingMethodsSection] delivery:fetch err", {
-                    debug_id,
-                    ms: Date.now() - t0,
-                    message: e?.message,
-                    stack: e?.stack,
-                })
-                if (!cancelled && deliveryQuoteMinor == null) {
-                    setError(e?.message || "No se pudo calcular el precio del envío.")
-                }
+                if (!cancelled) setError(e?.message || "No se pudo calcular el precio del envío.")
             } finally {
                 if (!cancelled) setLoading(false)
             }
         }
 
         run()
-        return () => {
-            cancelled = true
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, mode, cart.id, cart.currency_code, deliveryOptionFromStore?.id, debug_id])
+        return () => { cancelled = true }
+    }, [isOpen, mode, cart.id, cart.currency_code, deliveryOptionFromStore?.id])
 
     useEffect(() => {
         if (!isOpen) return
         if (mode !== "pickup") return
 
         let cancelled = false
-        const t0 = Date.now()
         setError(null)
         setLoading(true)
-
-        console.log("[storefront][ui][CartShippingMethodsSection] pickup locations:fetch start", {
-            debug_id,
-            cartId: cart.id,
-        })
 
         listPickupLocations(cart.id)
             .then((locs: PickupLocation[]) => {
                 if (cancelled) return
                 setPickupLocations(locs || [])
                 setSelectedPickup((prev) => prev || (locs?.[0] ?? null))
-
-                console.log("[storefront][ui][CartShippingMethodsSection] pickup locations:fetch ok", {
-                    debug_id,
-                    ms: Date.now() - t0,
-                    count: locs?.length ?? 0,
-                    first: locs?.[0] ?? null,
-                })
             })
             .catch((e: any) => {
                 if (cancelled) return
-                console.error("[storefront][ui][CartShippingMethodsSection] pickup locations:fetch err", {
-                    debug_id,
-                    ms: Date.now() - t0,
-                    message: e?.message,
-                })
                 setError(e?.message || "No se pudieron cargar los puntos de recojo.")
             })
             .finally(() => {
                 if (!cancelled) setLoading(false)
             })
 
-        return () => {
-            cancelled = true
-        }
-    }, [isOpen, mode, cart.id, debug_id])
+        return () => { cancelled = true }
+    }, [isOpen, mode, cart.id])
 
     useEffect(() => {
         setError(null)
@@ -256,18 +178,13 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
             setError(null)
 
             const firstItem = cart.items?.[0] as any
-            const sellerId = firstItem?.product?.seller_id || firstItem?.product?.seller?.id || firstItem?.seller_id || null
+            const sellerId =
+                firstItem?.product?.seller_id ||
+                firstItem?.product?.seller?.id ||
+                firstItem?.seller_id ||
+                null
 
             const optionId = mode === "delivery" ? deliveryOptionId : selectedPickup?.shipping_option_id
-
-            console.log("[storefront][ui][CartShippingMethodsSection] confirm:start", {
-                debug_id,
-                mode,
-                cartId: cart.id,
-                sellerId,
-                optionId,
-            })
-
             if (!optionId) {
                 setError("Selecciona una opción válida de envío.")
                 return
@@ -285,46 +202,47 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                 if (selectedPickup?.stock_location_id) payloadData.stock_location_id = selectedPickup.stock_location_id
             }
 
-            // --- CLAVE: amountMinor para permitir FORCE fallback desde cart.ts ---
-            let amountMinor: number | null = null
+            // ✅ IMPORTANTE: guardar el shipping en MAJOR para que sume bien con items (que están en MAJOR).
+            let amountMajor: number | null = null
 
             if (mode === "delivery") {
-                amountMinor = deliveryQuoteMinor ?? null
-                if (amountMinor == null) {
-                    setError("Primero se debe calcular el precio del envío (deliveryQuoteMinor es null).")
+                if (deliveryQuoteMajor == null || deliveryQuoteMinor == null) {
+                    setError("Primero se debe calcular el precio del envío.")
                     return
                 }
+                amountMajor = deliveryQuoteMajor
             } else {
-                // Para pickup calculamos quote al confirmar (si aún no lo tienes en state)
+                // pickup: calculamos quote al confirmar
                 const q = await calculateShippingOptionQuote({
                     cartId: cart.id,
                     optionId,
-                    data: {
-                        ...payloadData,
-                    },
+                    data: { ...payloadData },
                 })
 
-                const minor = extractQuoteMinor(q)
+                const minor = extractQuoteNumber(q)
                 if (minor == null) {
-                    setError("No se pudo interpretar el quote de pickup (faltan campos amount/calculated_amount).")
+                    setError("No se pudo interpretar el quote de pickup.")
                     return
                 }
-                amountMinor = minor
+
+                amountMajor = toMajor(minor, cart.currency_code)
             }
 
-            console.log("[storefront][ui][CartShippingMethodsSection] confirm:amount", {
-                debug_id,
-                mode,
+            console.log("[ship] confirm", {
+                ms: Date.now() - t0,
                 optionId,
-                amountMinor,
+                amountMajor,
+                currency: cart.currency_code,
             })
 
+            // Ojo: tu helper actualmente se llama amountMinor.
+            // Pásale MAJOR igual (16.6), así el backend suma correcto.
             const res = await setShippingMethod({
                 cartId: cart.id,
                 shippingMethodId: optionId!,
                 sellerId,
                 data: payloadData,
-                amountMinor, // <--- NUEVO
+                amountMinor: amountMajor, // <- sí, el nombre está feo, pero evita tocar backend ahora
             })
 
             if (!res.ok) {
@@ -334,21 +252,13 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
 
             router.push(pathname + "?step=payment", { scroll: false })
         } catch (e: any) {
-            console.error("[storefront][ui][CartShippingMethodsSection] confirm:err", {
-                debug_id,
-                ms: Date.now() - t0,
-                message: e?.message,
-                stack: e?.stack,
-            })
             setError(e?.message || "Ocurrió un error")
         } finally {
             setSaving(false)
         }
     }
 
-    const handleEdit = () => {
-        router.replace(pathname + "?step=delivery")
-    }
+    const handleEdit = () => router.replace(pathname + "?step=delivery")
 
     const isEditEnabled = !isOpen && !!cart?.shipping_methods?.length
 
@@ -373,11 +283,17 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                     {cart && (cart.shipping_methods?.length ?? 0) > 0 ? (
                         <div className="flex flex-col">
                             {cart.shipping_methods?.map((method) => (
-                                <CartShippingMethodRow key={method.id} method={method} currency_code={cart.currency_code} />
+                                <CartShippingMethodRow
+                                    key={method.id}
+                                    method={method}
+                                    currency_code={cart.currency_code}
+                                />
                             ))}
                         </div>
                     ) : (
-                        <Text className="text-ui-fg-subtle">Aún no se ha seleccionado un método de envío.</Text>
+                        <Text className="text-ui-fg-subtle">
+                            Aún no se ha seleccionado un método de envío.
+                        </Text>
                     )}
                 </div>
             </div>
@@ -395,10 +311,18 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
             </div>
 
             <div className="flex gap-2 mb-4">
-                <Button variant={mode === "delivery" ? "filled" : "tonal"} onClick={() => setMode("delivery")} type="button">
+                <Button
+                    variant={mode === "delivery" ? "filled" : "tonal"}
+                    onClick={() => setMode("delivery")}
+                    type="button"
+                >
                     Enviar a mi dirección
                 </Button>
-                <Button variant={mode === "pickup" ? "filled" : "tonal"} onClick={() => setMode("pickup")} type="button">
+                <Button
+                    variant={mode === "pickup" ? "filled" : "tonal"}
+                    onClick={() => setMode("pickup")}
+                    type="button"
+                >
                     Recoger en warehouse
                 </Button>
             </div>
@@ -414,12 +338,14 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                     <Text className="txt-medium-plus text-ui-fg-base mb-1">Enviar a tu dirección</Text>
 
                     {!deliveryOptionId ? (
-                        <Text className="txt-medium text-ui-fg-subtle">No hay opción de delivery disponible para este carrito.</Text>
+                        <Text className="txt-medium text-ui-fg-subtle">
+                            No hay opción de delivery disponible para este carrito.
+                        </Text>
                     ) : (
                         <Text className="txt-medium text-ui-fg-subtle">
                             Envío{" "}
                             {convertToLocale({
-                                amount: toMajor(deliveryQuoteMinor ?? 0, cart.currency_code),
+                                amount: deliveryQuoteMajor ?? 0, // ✅ MAJOR
                                 currency_code: cart.currency_code,
                             })}
                         </Text>
@@ -432,7 +358,9 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                     <Text className="txt-medium-plus text-ui-fg-base mb-2">Elige dónde recoger</Text>
 
                     {pickupLocations.length === 0 ? (
-                        <Text className="txt-medium text-ui-fg-subtle">No hay warehouses habilitados para recojo en este momento.</Text>
+                        <Text className="txt-medium text-ui-fg-subtle">
+                            No hay warehouses habilitados para recojo en este momento.
+                        </Text>
                     ) : (
                         <div className="flex flex-col gap-2">
                             {pickupLocations.map((loc) => {
@@ -468,14 +396,24 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
             {cart && (cart.shipping_methods?.length ?? 0) > 0 && (
                 <div className="flex flex-col mt-4">
                     {cart.shipping_methods?.map((method) => (
-                        <CartShippingMethodRow key={method.id} method={method} currency_code={cart.currency_code} />
+                        <CartShippingMethodRow
+                            key={method.id}
+                            method={method}
+                            currency_code={cart.currency_code}
+                        />
                     ))}
                 </div>
             )}
 
             <ErrorMessage error={error} data-testid="delivery-option-error-message" />
 
-            <Button onClick={handleConfirm} variant="tonal" disabled={saving || !deliveryEnabled} loading={saving} type="button">
+            <Button
+                onClick={handleConfirm}
+                variant="tonal"
+                disabled={saving || !deliveryEnabled}
+                loading={saving}
+                type="button"
+            >
                 Continuar al pago
             </Button>
         </div>

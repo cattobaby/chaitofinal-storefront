@@ -10,6 +10,7 @@ export const CartSummary = ({
                                 tax,
                                 discount_total,
                             }: {
+    // ✅ En tu DB/tienda estos vienen en MAJOR
     item_total: number
     shipping_total: number
     total: number
@@ -17,53 +18,43 @@ export const CartSummary = ({
     tax: number
     discount_total: number
 }) => {
+    const code = currency_code || "bob"
+
     return (
         <div>
             <div className="space-y-4 label-md text-secondary mb-4">
                 <div className="flex justify-between">
                     <span>Items:</span>
                     <span className="text-primary">
-            {convertToLocale({
-                amount: item_total,
-                currency_code,
-            })}
+            {convertToLocale({ amount: item_total, currency_code: code })}
           </span>
                 </div>
+
                 <div className="flex justify-between">
                     <span>Delivery:</span>
                     <span className="text-primary">
-            {convertToLocale({
-                amount: shipping_total,
-                currency_code,
-            })}
+            {convertToLocale({ amount: shipping_total, currency_code: code })}
           </span>
                 </div>
+
                 <div className="flex justify-between">
                     <span>Tax:</span>
                     <span className="text-primary">
-            {convertToLocale({
-                amount: tax,
-                currency_code,
-            })}
+            {convertToLocale({ amount: tax, currency_code: code })}
           </span>
                 </div>
+
                 <div className="flex justify-between">
                     <span>Discount:</span>
                     <span className="text-primary">
-            {convertToLocale({
-                amount: discount_total,
-                currency_code,
-            })}
+            {convertToLocale({ amount: discount_total, currency_code: code })}
           </span>
                 </div>
+
                 <div className="flex justify-between border-t pt-4 items-center">
                     <span>Total:</span>
-                    {/* UPDATED: Changed text-primary to text-green-700 to highlight the final cost */}
                     <span className="label-xl text-green-700 font-bold">
-            {convertToLocale({
-                amount: total,
-                currency_code,
-            })}
+            {convertToLocale({ amount: total, currency_code: code })}
           </span>
                 </div>
             </div>

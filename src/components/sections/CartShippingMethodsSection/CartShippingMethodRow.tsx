@@ -1,4 +1,3 @@
-// storefront/src/components/sections/CartShippingMethodsSection/CartShippingMethodRow.tsx
 "use client"
 
 import { Button } from "@/components/atoms"
@@ -7,17 +6,6 @@ import { removeShippingMethod } from "@/lib/data/cart"
 import { convertToLocale } from "@/lib/helpers/money"
 import { HttpTypes } from "@medusajs/types"
 import { Text } from "@medusajs/ui"
-
-// ➕ same helper as elsewhere
-const ZERO_DECIMAL = new Set([
-    "bif","clp","djf","gnf","jpy","kmf","krw","mga","pyg","rwf",
-    "ugx","vnd","vuv","xaf","xof","xpf"
-])
-function toMajor(amount: number | undefined, currency?: string) {
-    const a = typeof amount === "number" ? amount : 0
-    const code = (currency || "").toLowerCase()
-    return ZERO_DECIMAL.has(code) ? a : a / 100
-}
 
 export const CartShippingMethodRow = ({
                                           method,
@@ -30,17 +18,15 @@ export const CartShippingMethodRow = ({
         await removeShippingMethod(method.id)
     }
 
-    const amountMinor =
-        typeof method?.amount === "number" && !Number.isNaN(method.amount)
+    const amount =
+        typeof method?.amount === "number" && Number.isFinite(method.amount)
             ? method.amount
             : 0
 
     const safeCurrencyCode =
         typeof currency_code === "string" && currency_code.trim() !== ""
             ? currency_code
-            : "BOB"
-
-    const amountMajor = toMajor(amountMinor, safeCurrencyCode)
+            : "bob"
 
     return (
         <div className="mb-4 border rounded-md p-4 flex items-center justify-between">
@@ -49,7 +35,7 @@ export const CartShippingMethodRow = ({
                 <Text className="txt-medium text-ui-fg-subtle">
                     {method?.name}{" "}
                     {convertToLocale({
-                        amount: amountMajor,
+                        amount, // ✅ MAJOR
                         currency_code: safeCurrencyCode,
                     })}
                 </Text>

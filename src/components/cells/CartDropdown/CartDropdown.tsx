@@ -13,132 +13,129 @@ import { usePathname } from "next/navigation"
 import { useCartContext } from "@/components/providers"
 
 const getItemCount = (cart: HttpTypes.StoreCart | null) => {
-  return cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
+    return cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
 }
 
 export const CartDropdown = () => {
-  const { cart } = useCartContext()
-  const [open, setOpen] = useState(false)
+    const { cart } = useCartContext()
+    const [open, setOpen] = useState(false)
 
-  const previousItemCount = usePrevious(getItemCount(cart))
-  const cartItemsCount = (cart && getItemCount(cart)) || 0
-  const pathname = usePathname()
+    const previousItemCount = usePrevious(getItemCount(cart))
+    const cartItemsCount = (cart && getItemCount(cart)) || 0
+    const pathname = usePathname()
 
-  // Filter out items with invalid data (missing prices/variants)
-  const validItems = filterValidCartItems(cart?.items)
+    const validItems = filterValidCartItems(cart?.items)
 
-  const total = convertToLocale({
-    amount: cart?.total || 0,
-    currency_code: cart?.currency_code || "eur",
-  })
+    const currency_code = cart?.currency_code || "bob"
 
-  const delivery = convertToLocale({
-    amount: cart?.shipping_subtotal || 0,
-    currency_code: cart?.currency_code || "eur",
-  })
+    // ✅ Medusa Store Cart: subtotal / shipping_total / tax_total / total
+    // ✅ Tu optimistic state: item_subtotal / shipping_subtotal (fallback)
+    const itemsAmount = (cart as any)?.subtotal ?? (cart as any)?.item_subtotal ?? 0
+    const deliveryAmount = (cart as any)?.shipping_total ?? (cart as any)?.shipping_subtotal ?? 0
+    const taxAmount = (cart as any)?.tax_total ?? 0
+    const totalAmount = (cart as any)?.total ?? 0
 
-  const tax = convertToLocale({
-    amount: cart?.tax_total || 0,
-    currency_code: cart?.currency_code || "eur",
-  })
+    const total = convertToLocale({ amount: totalAmount, currency_code })
+    const delivery = convertToLocale({ amount: deliveryAmount, currency_code })
+    const tax = convertToLocale({ amount: taxAmount, currency_code })
+    const items = convertToLocale({ amount: itemsAmount, currency_code })
 
-  const items = convertToLocale({
-    amount: cart?.item_subtotal || 0,
-    currency_code: cart?.currency_code || "eur",
-  })
+    useEffect(() => {
+        if (open) {
+            const timeout = setTimeout(() => setOpen(false), 2000)
+            return () => clearTimeout(timeout)
+        }
+    }, [open])
 
-  useEffect(() => {
-    if (open) {
-      const timeout = setTimeout(() => {
-        setOpen(false)
-      }, 2000)
+    useEffect(() => {
+        if (
+            previousItemCount !== undefined &&
+            cartItemsCount > previousItemCount &&
+            pathname.split("/")[2] !== "cart"
+        ) {
+            setOpen(true)
+        }
+    }, [cartItemsCount, previousItemCount, pathname])
 
-      return () => clearTimeout(timeout)
-    }
-  }, [open])
+    return (
+        <div
+            className="relative"
+            onMouseOver={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+        >
+            <LocalizedClientLink
+                href="/cart"
+                className="relative block"
+                aria-label="Go to cart"
+            >
+                <CartIcon size={24} color="white" />
+                {Boolean(cartItemsCount) && (
+                    <Badge className="absolute -top-2 -right-2 w-4 h-4 p-0 bg-green-400 text-brand-900 border-2 border-brand-700 flex items-center justify-center text-[10px]">
+                        {cartItemsCount}
+                    </Badge>
+                )}
+            </LocalizedClientLink>
 
-  useEffect(() => {
-    if (
-      previousItemCount !== undefined &&
-      cartItemsCount > previousItemCount &&
-      pathname.split("/")[2] !== "cart"
-    ) {
-      setOpen(true)
-    }
-  }, [cartItemsCount, previousItemCount])
+            <Dropdown show={open}>
+                <div className="lg:w-[460px] shadow-xl bg-white rounded-md border border-neutral-200">
+                    <h3 className="uppercase heading-md border-b p-4 text-neutral-900">
+                        Shopping cart
+                    </h3>
 
-  return (
-    <div
-      className="relative"
-      onMouseOver={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      <LocalizedClientLink
-        href="/cart"
-        className="relative block"
-        aria-label="Go to cart"
-      >
-        {/* FIX: Icon color set to white for visibility on purple header */}
-        <CartIcon size={24} color="white" />
-        {Boolean(cartItemsCount) && (
-          <Badge className="absolute -top-2 -right-2 w-4 h-4 p-0 bg-green-400 text-brand-900 border-2 border-brand-700 flex items-center justify-center text-[10px]">
-            {cartItemsCount}
-          </Badge>
-        )}
-      </LocalizedClientLink>
-      <Dropdown show={open}>
-        <div className="lg:w-[460px] shadow-xl bg-white rounded-md border border-neutral-200">
-          <h3 className="uppercase heading-md border-b p-4 text-neutral-900">Shopping cart</h3>
-          <div className="p-4">
-            {Boolean(cartItemsCount) ? (
-              <div>
-                <div className="overflow-y-scroll max-h-[360px] no-scrollbar">
-                  {validItems.map((item) => (
-                    <CartDropdownItem
-                      key={`${item.product_id}-${item.variant_id}`}
-                      item={item}
-                      currency_code={cart?.currency_code || "eur"}
-                    />
-                  ))}
+                    <div className="p-4">
+                        {Boolean(cartItemsCount) ? (
+                            <div>
+                                <div className="overflow-y-scroll max-h-[360px] no-scrollbar">
+                                    {validItems.map((item) => (
+                                        <CartDropdownItem
+                                            key={`${item.product_id}-${item.variant_id}`}
+                                            item={item}
+                                            currency_code={currency_code}
+                                        />
+                                    ))}
+                                </div>
+
+                                <div className="pt-4">
+                                    <div className="text-neutral-500 flex justify-between items-center">
+                                        Items <p className="label-md text-neutral-900">{items}</p>
+                                    </div>
+                                    <div className="text-neutral-500 flex justify-between items-center">
+                                        Delivery <p className="label-md text-neutral-900">{delivery}</p>
+                                    </div>
+                                    <div className="text-neutral-500 flex justify-between items-center">
+                                        Tax <p className="label-md text-neutral-900">{tax}</p>
+                                    </div>
+
+                                    <div className="text-neutral-900 flex justify-between items-center border-t mt-2 pt-2">
+                                        <span className="font-bold">Total</span>
+                                        <p className="label-xl text-brand-700">{total}</p>
+                                    </div>
+
+                                    <LocalizedClientLink href="/cart">
+                                        <Button className="w-full mt-4 py-3 bg-brand-700 hover:bg-brand-800 text-white font-bold transition-colors">
+                                            Go to cart
+                                        </Button>
+                                    </LocalizedClientLink>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="px-8 py-6">
+                                <h4 className="heading-md uppercase text-center text-neutral-900">
+                                    Your shopping cart is empty
+                                </h4>
+                                <p className="text-lg text-center py-4 text-neutral-500">
+                                    Are you looking for inspiration?
+                                </p>
+                                <LocalizedClientLink href="/categories">
+                                    <Button className="w-full py-3 bg-brand-700 hover:bg-brand-800 text-white transition-colors">
+                                        Explore Home Page
+                                    </Button>
+                                </LocalizedClientLink>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <div className="pt-4">
-                  <div className="text-neutral-500 flex justify-between items-center">
-                    Items <p className="label-md text-neutral-900">{items}</p>
-                  </div>
-                  <div className="text-neutral-500 flex justify-between items-center">
-                    Delivery <p className="label-md text-neutral-900">{delivery}</p>
-                  </div>
-                  <div className="text-neutral-500 flex justify-between items-center">
-                    Tax <p className="label-md text-neutral-900">{tax}</p>
-                  </div>
-                  <div className="text-neutral-900 flex justify-between items-center border-t mt-2 pt-2">
-                    <span className="font-bold">Total</span> <p className="label-xl text-brand-700">{total}</p>
-                  </div>
-                  <LocalizedClientLink href="/cart">
-                    <Button className="w-full mt-4 py-3 bg-brand-700 hover:bg-brand-800 text-white font-bold transition-colors">
-                      Go to cart
-                    </Button>
-                  </LocalizedClientLink>
-                </div>
-              </div>
-            ) : (
-              <div className="px-8 py-6">
-                <h4 className="heading-md uppercase text-center text-neutral-900">
-                  Your shopping cart is empty
-                </h4>
-                <p className="text-lg text-center py-4 text-neutral-500">
-                  Are you looking for inspiration?
-                </p>
-                <LocalizedClientLink href="/categories">
-                  <Button className="w-full py-3 bg-brand-700 hover:bg-brand-800 text-white transition-colors">
-                    Explore Home Page
-                  </Button>
-                </LocalizedClientLink>
-              </div>
-            )}
-          </div>
+            </Dropdown>
         </div>
-      </Dropdown>
-    </div>
-  )
+    )
 }

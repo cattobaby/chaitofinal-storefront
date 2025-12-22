@@ -23,6 +23,20 @@ export const convertToLocale = ({
             ? currency_code.toUpperCase()
             : "BOB"
 
+    // USDT no es ISO-4217 → Intl currency falla.
+    if (safeCurrency === "USDT") {
+        const min = typeof minimumFractionDigits === "number" ? minimumFractionDigits : 2
+        const max = typeof maximumFractionDigits === "number" ? maximumFractionDigits : 2
+
+        const formatted = new Intl.NumberFormat(locale, {
+            minimumFractionDigits: min,
+            maximumFractionDigits: max,
+        }).format(numericAmount)
+
+        // Estilo consistente con el resto
+        return `USDT ${formatted}`
+    }
+
     try {
         return new Intl.NumberFormat(locale, {
             style: "currency",
@@ -54,20 +68,18 @@ const ZERO_DECIMAL = new Set([
 export const isZeroDecimal = (currency?: string) =>
     ZERO_DECIMAL.has((currency || "").toLowerCase())
 
-/** Convierte de minor units a major units */
+/**
+ * Si (y solo si) recibes algo en MINOR units, conviértelo a MAJOR.
+ * En tu tienda, los precios de productos están en MAJOR (400 = 400.00),
+ * pero el quote de envío te está viniendo en MINOR (1660 = 16.60).
+ */
 export function toMajor(amountMinor: number | undefined, currency?: string) {
     const a = typeof amountMinor === "number" ? amountMinor : 0
     return isZeroDecimal(currency) ? a : a / 100
 }
 
-/** Formatea un monto en minor units a string localizado */
-export function formatMinor(params: Omit<ConvertToLocaleParams, "amount"> & { amountMinor: number }) {
-    const major = toMajor(params.amountMinor, params.currency_code)
-    return convertToLocale({
-        amount: major,
-        currency_code: params.currency_code,
-        minimumFractionDigits: params.minimumFractionDigits,
-        maximumFractionDigits: params.maximumFractionDigits,
-        locale: params.locale,
-    })
+/** MAJOR → MINOR (útil para Stripe u otros gateways que piden minor) */
+export function toMinor(amountMajor: number | undefined, currency?: string) {
+    const a = typeof amountMajor === "number" ? amountMajor : 0
+    return isZeroDecimal(currency) ? Math.round(a) : Math.round(a * 100)
 }

@@ -110,7 +110,7 @@ export const ProductDetailsHeader = ({
 
         try {
             if (!isVariantStockMaxLimitReached) {
-                onAddToCart(storeCartLineItem, variantPrice?.currency_code || "eur")
+                onAddToCart(storeCartLineItem, variantPrice?.currency_code || "bob")
             }
             await addToCart({
                 variantId: variantId,
