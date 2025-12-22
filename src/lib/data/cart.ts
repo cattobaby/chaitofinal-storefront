@@ -323,31 +323,118 @@ type SetShippingMethodArgs = {
     shippingMethodId: string // shipping_option_id
     sellerId?: string | null
     data?: Record<string, any>
+    amountMinor?: number | null
 }
 
-/**
- * ✅ FIX: esta llamada NO estaba enviando x-publishable-api-key ni auth headers.
- * Ahora usamos getAuthHeaders() (como el resto del storefront).
- */
 export async function setShippingMethod(args: SetShippingMethodArgs): Promise<{
     ok: boolean
     cart?: HttpTypes.StoreCart
     error?: { message: string }
 }> {
+    const authHeaders = await getAuthHeaders()
+
+    const headers: Record<string, string> = {
+        ...(authHeaders as any),
+        "Content-Type": "application/json",
+    }
+
+    const pub = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+    if (pub && !headers["x-publishable-api-key"]) {
+        headers["x-publishable-api-key"] = pub
+    }
+
+    const shouldFallback = (msg: string) => {
+        const m = (msg || "").toLowerCase()
+        return (
+            m.includes("not available for any of the cart items") ||
+            m.includes("not available for any of the cart item") ||
+            m.includes("is not available") ||
+            m.includes("not available for the cart")
+        )
+    }
+
+    const fetchCart = async () => {
+        const { cart } = await sdk.client.fetch<HttpTypes.StoreCartResponse>(`/store/carts/${args.cartId}`, {
+            method: "GET",
+            query: {
+                fields: [
+                    "*items",
+                    "*items.product",
+                    "*items.variant",
+                    "*items.variant.options",
+                    "items.variant.options.option.title",
+                    "*items.thumbnail",
+                    "*items.metadata",
+                    "+items.total",
+                    "*region",
+                    "*shipping_address",
+                    "*billing_address",
+                    "*promotions",
+                    "+shipping_methods.name",
+                    "+shipping_methods.amount",
+                    "*items.product.seller",
+                    "+subtotal",
+                    "+shipping_total",
+                    "+discount_total",
+                    "+tax_total",
+                    "+total",
+                    "*payment_collection.payment_sessions",
+                    "payment_collection.payment_sessions.*",
+                    "payment_collection.payment_sessions.data",
+                ].join(","),
+            },
+            headers,
+            cache: "no-cache",
+        })
+        return cart
+    }
+
+    // ✅ FIX: enviar al force route el payload correcto (amount + option_id)
+    const callForce = async (messageFromNormal: string) => {
+        const amountMinor = typeof args.amountMinor === "number" ? args.amountMinor : null
+        if (amountMinor == null || !Number.isFinite(amountMinor)) {
+            return { ok: false, error: { message: `${messageFromNormal} (faltó amount para FORCE)` } }
+        }
+
+        const resp = await fetch(`${BASE_URL}/storeapp/shipping/force`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                cart_id: args.cartId,
+
+                // canonical
+                option_id: args.shippingMethodId,
+
+                // canonical (minor units)
+                amount: amountMinor,
+
+                replace_existing: true,
+
+                data: {
+                    ...(args.data || {}),
+                    ...(args.sellerId ? { seller_id: args.sellerId } : {}),
+                    forced: true,
+                    source: (args.data as any)?.source ?? "storefront_force",
+                },
+            }),
+            cache: "no-cache",
+        })
+
+        const json = await resp.json().catch(() => ({}))
+        if (!resp.ok) {
+            return { ok: false, error: { message: json?.message || "FORCE failed" } }
+        }
+
+        const cart = await fetchCart()
+
+        const cartCacheTag = await getCacheTag("carts")
+        revalidateTag(cartCacheTag)
+
+        return { ok: true, cart }
+    }
+
     try {
-        const authHeaders = await getAuthHeaders()
-
-        const headers: Record<string, string> = {
-            ...(authHeaders as any),
-            "Content-Type": "application/json",
-        }
-
-        // Fallback defensivo por si getAuthHeaders no incluye publishable key en algún entorno
-        const pub = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
-        if (pub && !headers["x-publishable-api-key"]) {
-            headers["x-publishable-api-key"] = pub
-        }
-
+        // 1) intento normal (Medusa)
         const res = await fetch(`${BASE_URL}/store/carts/${args.cartId}/shipping-methods`, {
             method: "POST",
             headers,
@@ -363,14 +450,23 @@ export async function setShippingMethod(args: SetShippingMethodArgs): Promise<{
 
         const json = await res.json().catch(() => ({}))
 
-        if (!res.ok) {
-            return {
-                ok: false,
-                error: { message: json?.message || "Error al establecer el método de envío." },
-            }
+        if (res.ok) {
+            const cart = (json?.cart || json) as HttpTypes.StoreCart
+
+            const cartCacheTag = await getCacheTag("carts")
+            revalidateTag(cartCacheTag)
+
+            return { ok: true, cart }
         }
 
-        return { ok: true, cart: json?.cart || json }
+        const msg = String(json?.message || "Error al establecer el método de envío.")
+
+        // 2) fallback solo para el error de availability por items/location
+        if (shouldFallback(msg)) {
+            return await callForce(msg)
+        }
+
+        return { ok: false, error: { message: msg } }
     } catch (e: any) {
         return { ok: false, error: { message: e?.message || "Error al establecer el método de envío." } }
     }
@@ -436,9 +532,6 @@ export async function applyPromotions(codes: string[]) {
 
 /**
  * ✅ FIX: removeShippingMethod ahora usa BASE_URL + auth headers + publishable key (igual que setShippingMethod).
- * Esto evita:
- * - usar MEDUSA_BACKEND_URL (a veces undefined en storefront)
- * - perder auth/publishable y que el DELETE falle/sea rechazado
  */
 export async function removeShippingMethod(shippingMethodId: string) {
     const cartId = await getCartId()

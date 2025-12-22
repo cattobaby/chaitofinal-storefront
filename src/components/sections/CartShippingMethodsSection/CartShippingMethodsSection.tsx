@@ -1,3 +1,5 @@
+/* /home/willman/WebstormProjects/new/new/storefront/src/components/sections/CartShippingMethodsSection/CartShippingMethodsSection.tsx */
+
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
@@ -279,14 +281,50 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                 if (deliveryReco?.stock_location_id) payloadData.stock_location_id = deliveryReco.stock_location_id
             } else {
                 payloadData.mode = "pickup"
+                payloadData.source = "pickup_selection"
                 if (selectedPickup?.stock_location_id) payloadData.stock_location_id = selectedPickup.stock_location_id
             }
+
+            // --- CLAVE: amountMinor para permitir FORCE fallback desde cart.ts ---
+            let amountMinor: number | null = null
+
+            if (mode === "delivery") {
+                amountMinor = deliveryQuoteMinor ?? null
+                if (amountMinor == null) {
+                    setError("Primero se debe calcular el precio del envío (deliveryQuoteMinor es null).")
+                    return
+                }
+            } else {
+                // Para pickup calculamos quote al confirmar (si aún no lo tienes en state)
+                const q = await calculateShippingOptionQuote({
+                    cartId: cart.id,
+                    optionId,
+                    data: {
+                        ...payloadData,
+                    },
+                })
+
+                const minor = extractQuoteMinor(q)
+                if (minor == null) {
+                    setError("No se pudo interpretar el quote de pickup (faltan campos amount/calculated_amount).")
+                    return
+                }
+                amountMinor = minor
+            }
+
+            console.log("[storefront][ui][CartShippingMethodsSection] confirm:amount", {
+                debug_id,
+                mode,
+                optionId,
+                amountMinor,
+            })
 
             const res = await setShippingMethod({
                 cartId: cart.id,
                 shippingMethodId: optionId!,
                 sellerId,
                 data: payloadData,
+                amountMinor, // <--- NUEVO
             })
 
             if (!res.ok) {
@@ -394,9 +432,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                     <Text className="txt-medium-plus text-ui-fg-base mb-2">Elige dónde recoger</Text>
 
                     {pickupLocations.length === 0 ? (
-                        <Text className="txt-medium text-ui-fg-subtle">
-                            No hay warehouses habilitados para recojo en este momento.
-                        </Text>
+                        <Text className="txt-medium text-ui-fg-subtle">No hay warehouses habilitados para recojo en este momento.</Text>
                     ) : (
                         <div className="flex flex-col gap-2">
                             {pickupLocations.map((loc) => {
