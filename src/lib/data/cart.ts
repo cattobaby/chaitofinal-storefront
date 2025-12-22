@@ -310,7 +310,7 @@ export async function deleteLineItem(lineId: string) {
         .then(async () => {
             const cartCacheTag = await getCacheTag("carts")
             await revalidateTag(cartCacheTag)
-            console.log(`${LOG} deleteLineItem:ok`, { cartId, lineId })
+            console.log(`${LOG} deleteLineItem:ok`, { cartId })
         })
         .catch((e) => {
             console.error(`${LOG} deleteLineItem:fail`, e?.message || e, e?.stack)
@@ -389,12 +389,14 @@ export async function setShippingMethod(args: SetShippingMethodArgs): Promise<{
         return cart
     }
 
-    // ✅ FIX: enviar al force route el payload correcto (amount + option_id)
+    // ✅ FIX: enviar al force route el payload correcto (amount + option_id) y forzar data.force/forced
     const callForce = async (messageFromNormal: string) => {
         const amountMinor = typeof args.amountMinor === "number" ? args.amountMinor : null
         if (amountMinor == null || !Number.isFinite(amountMinor)) {
             return { ok: false, error: { message: `${messageFromNormal} (faltó amount para FORCE)` } }
         }
+
+        const source = (args.data as any)?.source ?? "storefront_force"
 
         const resp = await fetch(`${BASE_URL}/storeapp/shipping/force`, {
             method: "POST",
@@ -413,8 +415,9 @@ export async function setShippingMethod(args: SetShippingMethodArgs): Promise<{
                 data: {
                     ...(args.data || {}),
                     ...(args.sellerId ? { seller_id: args.sellerId } : {}),
+                    force: true,
                     forced: true,
-                    source: (args.data as any)?.source ?? "storefront_force",
+                    source,
                 },
             }),
             cache: "no-cache",
@@ -461,7 +464,7 @@ export async function setShippingMethod(args: SetShippingMethodArgs): Promise<{
 
         const msg = String(json?.message || "Error al establecer el método de envío.")
 
-        // 2) fallback solo para el error de availability por items/location
+        // 2) fallback solo para availability por items/location (setShippingMethod)
         if (shouldFallback(msg)) {
             return await callForce(msg)
         }
