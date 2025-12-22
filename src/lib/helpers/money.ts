@@ -44,3 +44,30 @@ export const convertToLocale = ({
         return `${numericAmount.toFixed(fallbackDigits)} ${safeCurrency}`
     }
 }
+
+/** Monedas sin decimales (minor === major) */
+const ZERO_DECIMAL = new Set([
+    "bif","clp","djf","gnf","jpy","kmf","krw","mga","pyg","rwf",
+    "ugx","vnd","vuv","xaf","xof","xpf",
+])
+
+export const isZeroDecimal = (currency?: string) =>
+    ZERO_DECIMAL.has((currency || "").toLowerCase())
+
+/** Convierte de minor units a major units */
+export function toMajor(amountMinor: number | undefined, currency?: string) {
+    const a = typeof amountMinor === "number" ? amountMinor : 0
+    return isZeroDecimal(currency) ? a : a / 100
+}
+
+/** Formatea un monto en minor units a string localizado */
+export function formatMinor(params: Omit<ConvertToLocaleParams, "amount"> & { amountMinor: number }) {
+    const major = toMajor(params.amountMinor, params.currency_code)
+    return convertToLocale({
+        amount: major,
+        currency_code: params.currency_code,
+        minimumFractionDigits: params.minimumFractionDigits,
+        maximumFractionDigits: params.maximumFractionDigits,
+        locale: params.locale,
+    })
+}

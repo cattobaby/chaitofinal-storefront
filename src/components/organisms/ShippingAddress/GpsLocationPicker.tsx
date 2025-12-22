@@ -1,8 +1,10 @@
 "use client"
 
+import "leaflet/dist/leaflet.css"
 import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet"
 import type { LatLngExpression } from "leaflet"
-import { locationMarkerIcon } from "@/lib/leaflet-setup"
+import { useEffect, useState } from "react"
+import { getLocationMarkerIcon } from "@/lib/leaflet-setup"
 
 type GpsLocationPickerProps = {
     latitude?: number | null
@@ -25,15 +27,10 @@ const ClickHandler = ({
             })
         },
     })
-
     return null
 }
 
-const GpsLocationPicker = ({
-                               latitude,
-                               longitude,
-                               onChange,
-                           }: GpsLocationPickerProps) => {
+const GpsLocationPicker = ({ latitude, longitude, onChange }: GpsLocationPickerProps) => {
     const hasCoords =
         typeof latitude === "number" &&
         !isNaN(latitude) &&
@@ -43,6 +40,19 @@ const GpsLocationPicker = ({
     const center: LatLngExpression = hasCoords
         ? [latitude as number, longitude as number]
         : DEFAULT_CENTER
+
+    const [markerIcon, setMarkerIcon] = useState<any>(null)
+
+    useEffect(() => {
+        let mounted = true
+        ;(async () => {
+            const icon = await getLocationMarkerIcon()
+            if (mounted) setMarkerIcon(icon)
+        })()
+        return () => {
+            mounted = false
+        }
+    }, [])
 
     return (
         <div className="mt-4 flex flex-col gap-y-2">
@@ -58,10 +68,10 @@ const GpsLocationPicker = ({
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
                     <ClickHandler onChange={onChange} />
-                    {hasCoords && (
+                    {hasCoords && markerIcon && (
                         <Marker
                             position={[latitude as number, longitude as number]}
-                            icon={locationMarkerIcon}
+                            icon={markerIcon}
                         />
                     )}
                 </MapContainer>
