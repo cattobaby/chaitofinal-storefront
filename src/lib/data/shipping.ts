@@ -38,9 +38,6 @@ export type PickupLocation = {
     distance_km: number | null
 }
 
-/**
- * Delivery recommendation (warehouse + price) + shipping_option_id (distance-fulfillment)
- */
 export async function recommendDelivery(cartId: string): Promise<DeliveryRecommendation | null> {
     const debug_id = mkDebugId("ship_reco")
     const t0 = Date.now()
@@ -84,10 +81,6 @@ export async function recommendDelivery(cartId: string): Promise<DeliveryRecomme
     }
 }
 
-/**
- * Uses Medusa endpoint to calculate amount for a shipping option.
- * ✅ Ahora acepta "data" y lo reenvía al provider
- */
 export async function calculateShippingOptionQuote(args: {
     cartId: string
     optionId: string
@@ -146,6 +139,10 @@ export async function calculateShippingOptionQuote(args: {
     }
 }
 
+/**
+ * ✅ Pickup locations (OVERRIDE) — usa /storeapp/shipping/pickup/recommend
+ * Fallback: /storeapp/shipping/pickup/locations (legacy)
+ */
 export async function listPickupLocations(cartId: string): Promise<PickupLocation[]> {
     const debug_id = mkDebugId("ship_pickups")
     const t0 = Date.now()
@@ -158,16 +155,65 @@ export async function listPickupLocations(cartId: string): Promise<PickupLocatio
         cartId,
     })
 
+    // 1) Nuevo override endpoint
     try {
-        const res = await sdk.client.fetch<{ pickup_locations: PickupLocation[] }>(`/storeapp/shipping/pickup/locations`, {
-            method: "GET",
-            query: { cart_id: cartId },
+        const res = await sdk.client.fetch<any>(`/storeapp/shipping/pickup/recommend`, {
+            method: "POST",
+            body: { cart_id: cartId },
             headers,
             next,
             cache: "no-cache",
         })
 
-        console.log("[storefront][data][shipping] listPickupLocations:ok", {
+        // ✅ soporta ambos shapes:
+        // - nuevo: { pickup_locations: [...] }
+        // - viejo: { stock_location_id, stock_location_name, shipping_option_id, ... }
+        const locs: PickupLocation[] =
+            Array.isArray(res?.pickup_locations) ? res.pickup_locations
+                : (res?.stock_location_id && res?.shipping_option_id)
+                    ? [{
+                        stock_location_id: String(res.stock_location_id),
+                        stock_location_name: String(res.stock_location_name || res.stock_location_id),
+                        stock_location_gps: res?.stock_location_gps ?? null,
+                        shipping_option_id: String(res.shipping_option_id),
+                        shipping_option_name: String(res.shipping_option_name || "Pickup"),
+                        provider_id: String(res.provider_id || "manual_manual"),
+                        enabled_in_store: "true",
+                        distance_km: typeof res?.distance_km === "number" ? res.distance_km : null,
+                    }]
+                    : []
+
+        console.log("[storefront][data][shipping] listPickupLocations:ok (recommend)", {
+            debug_id,
+            ms: Date.now() - t0,
+            count: locs.length,
+            first: locs[0] ?? null,
+            rawKeys: res ? Object.keys(res) : [],
+        })
+
+        return locs
+    } catch (e: any) {
+        console.error("[storefront][data][shipping] listPickupLocations:recommend err → fallback legacy", {
+            debug_id,
+            ms: Date.now() - t0,
+            message: e?.message || e,
+        })
+    }
+
+    // 2) Fallback legacy GET
+    try {
+        const res = await sdk.client.fetch<{ pickup_locations: PickupLocation[] }>(
+            `/storeapp/shipping/pickup/locations`,
+            {
+                method: "GET",
+                query: { cart_id: cartId },
+                headers,
+                next,
+                cache: "no-cache",
+            }
+        )
+
+        console.log("[storefront][data][shipping] listPickupLocations:ok (legacy)", {
             debug_id,
             ms: Date.now() - t0,
             count: res?.pickup_locations?.length ?? 0,
@@ -176,7 +222,7 @@ export async function listPickupLocations(cartId: string): Promise<PickupLocatio
 
         return res.pickup_locations || []
     } catch (e: any) {
-        console.error("[storefront][data][shipping] listPickupLocations:err", {
+        console.error("[storefront][data][shipping] listPickupLocations:legacy err", {
             debug_id,
             ms: Date.now() - t0,
             message: e?.message || e,

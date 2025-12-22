@@ -324,9 +324,14 @@ type SetShippingMethodArgs = {
     sellerId?: string | null
     data?: Record<string, any>
     amountMinor?: number | null
+
+    // ✅ NEW: para pickup (o lo que quieras) -> FORCE directo
+    force?: boolean
 }
 
-export async function setShippingMethod(args: SetShippingMethodArgs): Promise<{
+export async function setShippingMethod(
+    args: SetShippingMethodArgs
+): Promise<{
     ok: boolean
     cart?: HttpTypes.StoreCart
     error?: { message: string }
@@ -389,7 +394,6 @@ export async function setShippingMethod(args: SetShippingMethodArgs): Promise<{
         return cart
     }
 
-    // ✅ FIX: enviar al force route el payload correcto (amount + option_id) y forzar data.force/forced
     const callForce = async (messageFromNormal: string) => {
         const amountMinor = typeof args.amountMinor === "number" ? args.amountMinor : null
         if (amountMinor == null || !Number.isFinite(amountMinor)) {
@@ -404,10 +408,8 @@ export async function setShippingMethod(args: SetShippingMethodArgs): Promise<{
             body: JSON.stringify({
                 cart_id: args.cartId,
 
-                // canonical
                 option_id: args.shippingMethodId,
 
-                // canonical (minor units)
                 amount: amountMinor,
 
                 replace_existing: true,
@@ -437,6 +439,11 @@ export async function setShippingMethod(args: SetShippingMethodArgs): Promise<{
     }
 
     try {
+        // ✅ NEW: si el caller pidió FORCE, no intentes el endpoint normal
+        if (args.force) {
+            return await callForce("Forced by caller")
+        }
+
         // 1) intento normal (Medusa)
         const res = await fetch(`${BASE_URL}/store/carts/${args.cartId}/shipping-methods`, {
             method: "POST",
@@ -464,7 +471,7 @@ export async function setShippingMethod(args: SetShippingMethodArgs): Promise<{
 
         const msg = String(json?.message || "Error al establecer el método de envío.")
 
-        // 2) fallback solo para availability por items/location (setShippingMethod)
+        // 2) fallback por availability
         if (shouldFallback(msg)) {
             return await callForce(msg)
         }
@@ -533,9 +540,6 @@ export async function applyPromotions(codes: string[]) {
         })
 }
 
-/**
- * ✅ FIX: removeShippingMethod ahora usa BASE_URL + auth headers + publishable key (igual que setShippingMethod).
- */
 export async function removeShippingMethod(shippingMethodId: string) {
     const cartId = await getCartId()
     if (!cartId) throw new Error("No existing cart found")
