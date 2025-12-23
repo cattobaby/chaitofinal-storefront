@@ -31,6 +31,21 @@ import { OrderTimeline } from "./OrderTimeline/OrderTimeline"
 import { WishlistItem } from "./WishlistItem/WishlistItem"
 import { ProductAdditionalAttributes } from "./ProductAdditionalAttributes/ProductAdditionalAttributes"
 
+/** extras (barrel completeness) */
+import AddressSelect from "./AddressSelect/AddressSelect"
+import CountrySelect from "./CountrySelect/CountrySelect"
+import { ChatBox } from "./ChatBox/ChatBox"
+import { RefreshButton } from "./RefreshButton/RefreshButton"
+import { StepProgressBar } from "./StepProgressBar/StepProgressBar"
+import { UserDropdown } from "./UserDropdown/UserDropdown"
+import { WishlistButton } from "./WishlistButton/WishlistButton"
+import { SellNowButton } from "./SellNowButton/SellNowButton"
+import { OrderCancel } from "./OrderCancel/OrderCancel"
+import { OrderReturn } from "./OrderReturn/OrderReturn"
+import { OrderTrack } from "./OrderTrack/OrderTrack"
+import { OrderTimelineLive } from "./OrderTimeline/OrderTimelineLive"
+import { PasswordValidator } from "./PasswordValidator/PasswordValidator"
+
 export {
   Navbar,
   Carousel,
@@ -64,4 +79,19 @@ export {
   OrderTimeline,
   WishlistItem,
   ProductAdditionalAttributes,
+
+  // extras
+  AddressSelect,
+  CountrySelect,
+  ChatBox,
+  RefreshButton,
+  StepProgressBar,
+  UserDropdown,
+  WishlistButton,
+  SellNowButton,
+  OrderCancel,
+  OrderReturn,
+  OrderTrack,
+  OrderTimelineLive,
+  PasswordValidator,
 }

@@ -10,7 +10,12 @@ export const StepProgressBar = ({
   const length = steps.length || 0
 
   return (
-    <div className={`grid grid-cols-${length} h-16`}>
+    <div
+      className="grid h-16"
+      style={{
+        gridTemplateColumns: `repeat(${Math.max(1, length)}, minmax(0, 1fr))`,
+      }}
+    >
       {steps.map((step, index) => (
         <div key={step} className="relative">
           <p

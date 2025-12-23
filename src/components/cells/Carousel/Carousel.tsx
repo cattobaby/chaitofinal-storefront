@@ -1,12 +1,10 @@
 "use client"
 
 import useEmblaCarousel from "embla-carousel-react"
-
 import { Indicator } from "@/components/atoms"
 import { ArrowLeftIcon, ArrowRightIcon } from "@/icons"
 import { useCallback, useEffect, useState } from "react"
 import { EmblaCarouselType } from "embla-carousel"
-import tailwindConfig from "../../../../tailwind.config"
 
 export const CustomCarousel = ({
   variant = "light",
@@ -23,16 +21,14 @@ export const CustomCarousel = ({
   })
 
   const [selectedIndex, setSelectedIndex] = useState(0)
-
   const maxStep = items.length
 
-  const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
-    setSelectedIndex(emblaApi.selectedScrollSnap())
+  const onSelect = useCallback((api: EmblaCarouselType) => {
+    setSelectedIndex(api.selectedScrollSnap())
   }, [])
 
   useEffect(() => {
     if (!emblaApi) return
-
     onSelect(emblaApi)
     emblaApi.on("reInit", onSelect).on("select", onSelect)
   }, [emblaApi, onSelect])
@@ -45,10 +41,8 @@ export const CustomCarousel = ({
     [emblaApi]
   )
 
-  const arrowColor = {
-    light: tailwindConfig.theme.extend.colors.primary,
-    dark: tailwindConfig.theme.extend.colors.tertiary,
-  }
+  const arrowBtnClass =
+    variant === "light" ? "text-primary" : "text-tertiary"
 
   return (
     <div className="embla relative w-full flex justify-center">
@@ -56,24 +50,28 @@ export const CustomCarousel = ({
         className="embla__viewport overflow-hidden rounded-xs w-full xl:flex xl:justify-center"
         ref={emblaRef}
       >
-        <div className="embla__container flex">
-          {items.map((slide) => slide)}
-        </div>
+        <div className="embla__container flex">{items.map((slide) => slide)}</div>
 
         <div className="flex justify-between items-center mt-4 sm:hidden">
           <div className="w-1/2">
-            <Indicator
-              variant={variant}
-              maxStep={maxStep}
-              step={selectedIndex + 1}
-            />
+            <Indicator variant={variant} maxStep={maxStep} step={selectedIndex + 1} />
           </div>
-          <div>
-            <button onClick={() => changeSlideHandler(selectedIndex - 1)}>
-              <ArrowLeftIcon color={arrowColor[variant]} />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className={arrowBtnClass}
+              onClick={() => changeSlideHandler(selectedIndex - 1)}
+              aria-label="Anterior"
+            >
+              <ArrowLeftIcon color="currentColor" />
             </button>
-            <button onClick={() => changeSlideHandler(selectedIndex + 1)}>
-              <ArrowRightIcon color={arrowColor[variant]} />
+            <button
+              type="button"
+              className={arrowBtnClass}
+              onClick={() => changeSlideHandler(selectedIndex + 1)}
+              aria-label="Siguiente"
+            >
+              <ArrowRightIcon color="currentColor" />
             </button>
           </div>
         </div>

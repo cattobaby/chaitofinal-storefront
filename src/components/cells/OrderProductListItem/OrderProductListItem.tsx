@@ -13,61 +13,72 @@ export const OrderProductListItem = ({
   item: any
   currency_code: string
   withDivider?: boolean
-}) => (
-  <Fragment>
-    {withDivider && <Divider className="mt-4" />}
-    <li className={cn("flex items-center", withDivider && "mt-2")}>
-      <div className="grid grid-cols-1 sm:grid-cols-7 w-full sm:gap-4 mb-2">
-        <div className="sm:col-span-2 flex gap-2 items-center">
-          <div className="w-[66px] h-16 relative rounded-sm overflow-hidden flex items-center justify-center">
-            {item.thumbnail ? (
-              <Image
-                src={item.thumbnail}
-                alt={item.title}
-                width={66}
-                height={66}
-                className="object-cover"
-              />
-            ) : (
-              <Image
-                src={"/images/placeholder.svg"}
-                alt={item.title}
-                width={45}
-                height={45}
-                className="opacity-25"
-              />
-            )}
+}) => {
+  const thumb = item?.thumbnail ? decodeURIComponent(item.thumbnail) : null
+  const handle = item?.variant?.product?.handle
+
+  return (
+    <Fragment>
+      {withDivider && <Divider className="mt-4" />}
+      <li className={cn("flex items-center", withDivider && "mt-2")}>
+        <div className="grid grid-cols-1 sm:grid-cols-7 w-full sm:gap-4 mb-2">
+          <div className="sm:col-span-2 flex gap-2 items-center">
+            <div className="w-[66px] h-16 relative rounded-sm overflow-hidden flex items-center justify-center">
+              {thumb ? (
+                <Image
+                  src={thumb}
+                  alt={item?.title || "Producto"}
+                  width={66}
+                  height={66}
+                  className="object-cover"
+                />
+              ) : (
+                <Image
+                  src={"/images/placeholder.svg"}
+                  alt="Producto"
+                  width={45}
+                  height={45}
+                  className="opacity-25"
+                />
+              )}
+            </div>
+
+            <p className="label-md text-secondary">{item.product_title}</p>
+
+            {handle ? (
+              <LocalizedClientLink
+                href={`/products/${handle}`}
+                target="_blank"
+                className="heading-xs text-primary"
+              >
+                {item.variant?.product?.title}
+              </LocalizedClientLink>
+            ) : null}
           </div>
-          <p className="label-md text-secondary">{item.product_title}</p>
-          <LocalizedClientLink
-            href={`/products/${item.variant?.product?.handle}`}
-            target="_blank"
-            className="heading-xs text-primary"
-          >
-            {item.variant?.product?.title}
-          </LocalizedClientLink>
+
+          <div className="sm:col-span-2 flex items-center">
+            <p className="label-md text-secondary">
+              Variante:{" "}
+              <span className="text-primary">
+                {item?.variant_title || item?.variant?.title}
+              </span>
+            </p>
+          </div>
+
+          <div className="sm:col-span-2 flex items-center justify-center">
+            <p className="label-md text-secondary">
+              Cantidad: <span className="text-primary">{item?.quantity}</span>
+            </p>
+          </div>
+
+          <div className="flex sm:justify-end label-lg text-primary sm:items-center">
+            {convertToLocale({
+              amount: item.total,
+              currency_code,
+            })}
+          </div>
         </div>
-        <div className="sm:col-span-2 flex items-center">
-          <p className="label-md text-secondary">
-            {`Variant: `}
-            <span className="text-primary">
-              {item?.variant_title || item?.variant?.title}
-            </span>
-          </p>
-        </div>
-        <div className="sm:col-span-2 flex items-center justify-center">
-          <p className="label-md text-secondary">
-            {`Quantity: `}
-            <span className="text-primary">{item?.quantity}</span>
-          </p>
-        </div>
-        <div className="flex sm:justify-end label-lg text-primary sm:items-center">
-          {convertToLocale({
-            amount: item.total,
-            currency_code: currency_code,
-          })}
-        </div>
-      </div>
-    </li>
-  </Fragment>
-)
+      </li>
+    </Fragment>
+  )
+}

@@ -34,8 +34,11 @@ export function ChatBox({
 
   useEffect(() => {
     let session: Talk.Session | undefined
+    let mounted = true
 
     Talk.ready.then(() => {
+      if (!mounted) return
+
       const me = new Talk.User(currentUser)
       const other = new Talk.User(supportUser)
 
@@ -44,10 +47,7 @@ export function ChatBox({
         me,
       })
 
-      const conversationId = `product-${product_id || order_id}-${me.id}-${
-        other.id
-      }`
-
+      const conversationId = `product-${product_id || order_id}-${me.id}-${other.id}`
       const conversation = session.getOrCreateConversation(conversationId)
 
       if (subject) {
@@ -59,13 +59,17 @@ export function ChatBox({
 
       const chatbox = session.createChatbox()
       chatbox.select(conversation)
+
       if (chatboxRef.current) {
         chatbox.mount(chatboxRef.current)
       }
     })
 
-    return () => session?.destroy()
-  }, [currentUser, supportUser])
+    return () => {
+      mounted = false
+      session?.destroy()
+    }
+  }, [currentUser, supportUser, subject, order_id, product_id])
 
   return <div className="w-full h-[500px]" ref={chatboxRef} />
 }

@@ -1,17 +1,15 @@
 import {
-    forwardRef,
-    useEffect,
-    useImperativeHandle,
-    useMemo,
-    useRef,
-    useState,
-    Fragment,
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  Fragment,
 } from "react"
 
 import { HttpTypes } from "@medusajs/types"
-import NativeSelect, {
-    NativeSelectProps,
-} from "@/components/molecules/NativeSelect/NativeSelect"
+import NativeSelect, { NativeSelectProps } from "@/components/molecules/NativeSelect/NativeSelect"
 import clsx from "clsx"
 import { Listbox, Transition } from "@headlessui/react"
 import { clx } from "@medusajs/ui"
@@ -21,275 +19,232 @@ type MinimalCountry = { iso_2?: string; display_name?: string }
 type MinimalRegion = { countries?: MinimalCountry[] }
 
 type Props = NativeSelectProps & {
-    region?: HttpTypes.StoreRegion | MinimalRegion | null
+  region?: HttpTypes.StoreRegion | MinimalRegion | null
 }
 
 type CountryOption = { value: string; label: string }
 
 const CountrySelect = forwardRef<HTMLSelectElement, Props>(
-    ({ placeholder = "Country", region, defaultValue, ...props }, ref) => {
-        const innerRef = useRef<HTMLSelectElement>(null)
-        useImperativeHandle<HTMLSelectElement | null, HTMLSelectElement | null>(
-            ref,
-            () => innerRef.current
-        )
+  ({ placeholder = "País", region, defaultValue, ...props }, ref) => {
+    const innerRef = useRef<HTMLSelectElement>(null)
 
-        const [fallbackCountries, setFallbackCountries] = useState<
-            { iso_2: string; display_name: string }[]
-        >([])
-        const [isLoadingFallback, setIsLoadingFallback] = useState(false)
+    useImperativeHandle<HTMLSelectElement | null, HTMLSelectElement | null>(
+      ref,
+      () => innerRef.current
+    )
 
-        const hasProvidedCountries =
-            Array.isArray(region?.countries) && (region?.countries?.length ?? 0) > 0
+    const [fallbackCountries, setFallbackCountries] = useState<
+      { iso_2: string; display_name: string }[]
+    >([])
+    const [isLoadingFallback, setIsLoadingFallback] = useState(false)
 
-        const countryOptions: CountryOption[] = useMemo(() => {
-            const source: MinimalCountry[] = hasProvidedCountries
-                ? (region?.countries as MinimalCountry[])
-                : fallbackCountries
+    const hasProvidedCountries =
+      Array.isArray(region?.countries) && (region?.countries?.length ?? 0) > 0
 
-            const opts =
-                source
-                    ?.map((c) => ({
-                        value: (c?.iso_2 ?? "").trim(),
-                        label: (c?.display_name ?? "").trim(),
-                    }))
-                    ?.filter((c) => c.value && c.label) ?? []
+    const countryOptions: CountryOption[] = useMemo(() => {
+      const source: MinimalCountry[] = hasProvidedCountries
+        ? (region?.countries as MinimalCountry[])
+        : fallbackCountries
 
-            console.log("[CountrySelect(cells)] built options", {
-                from: hasProvidedCountries ? "region.countries" : "fallback",
-                count: opts.length,
-                first10: opts.slice(0, 10),
-            })
+      return (
+        source
+          ?.map((c) => ({
+            value: (c?.iso_2 ?? "").trim(),
+            label: (c?.display_name ?? "").trim(),
+          }))
+          ?.filter((c) => c.value && c.label) ?? []
+      )
+    }, [region?.countries, fallbackCountries, hasProvidedCountries])
 
-            return opts
-        }, [region?.countries, fallbackCountries, hasProvidedCountries])
+    // Fallback fetch (client-side) if no countries were provided
+    useEffect(() => {
+      if (hasProvidedCountries) return
+      let cancelled = false
 
-        // Fallback fetch (client-side) if no countries were provided
-        useEffect(() => {
-            if (hasProvidedCountries) return
-            let cancelled = false
+      const fetchCountries = async () => {
+        setIsLoadingFallback(true)
 
-            const fetchCountries = async () => {
-                setIsLoadingFallback(true)
+        const backendBase =
+          (process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL &&
+            process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL.trim()) ||
+          "http://localhost:9000"
 
-                // 1) Try MEDUSA backend directly
-                const backendBase =
-                    (process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL &&
-                        process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL.trim()) ||
-                    "http://localhost:9000"
+        const backendUrl = `${backendBase.replace(/\/$/, "")}/store/regions?fields=id,name,*countries`
 
-                const backendUrl = `${backendBase.replace(/\/$/, "")}/store/regions?fields=id,name,*countries`
-
-                const headers: Record<string, string> = {
-                    accept: "application/json",
-                    "content-type": "application/json",
-                }
-                if (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY) {
-                    headers["x-publishable-api-key"] =
-                        process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY as string
-                }
-
-                const tryBackend = async () => {
-                    try {
-                        console.log("[CountrySelect(cells)] fallback → backend", backendUrl)
-                        const res = await fetch(backendUrl, { headers, cache: "no-store" })
-                        if (!res.ok) {
-                            console.warn(
-                                "[CountrySelect(cells)] backend fetch failed:",
-                                res.status,
-                                res.statusText
-                            )
-                            return null
-                        }
-                        const json = (await res.json()) as {
-                            regions?: { countries?: MinimalCountry[] }[]
-                        }
-
-                        const all =
-                            json?.regions
-                                ?.flatMap((r) => r?.countries ?? [])
-                                .map((c) => ({
-                                    iso_2: (c?.iso_2 ?? "").trim(),
-                                    display_name: (c?.display_name ?? "").trim(),
-                                }))
-                                .filter((c) => c.iso_2 && c.display_name) ?? []
-
-                        return all
-                    } catch (e: any) {
-                        console.warn(
-                            "[CountrySelect(cells)] backend fetch error:",
-                            e?.message || e
-                        )
-                        return null
-                    }
-                }
-
-                // 2) Fallback: same-origin (only works if you proxy /store/* to Medusa)
-                const trySameOrigin = async () => {
-                    try {
-                        const origin =
-                            typeof window !== "undefined" ? window.location.origin : ""
-                        const sameOriginUrl = new URL(
-                            "/store/regions?fields=id,name,*countries",
-                            origin
-                        ).toString()
-                        console.log(
-                            "[CountrySelect(cells)] fallback → same-origin",
-                            sameOriginUrl
-                        )
-
-                        const res = await fetch(sameOriginUrl, {
-                            headers,
-                            cache: "no-store",
-                        })
-                        if (!res.ok) {
-                            console.warn(
-                                "[CountrySelect(cells)] same-origin fetch failed:",
-                                res.status,
-                                res.statusText
-                            )
-                            return null
-                        }
-
-                        const json = (await res.json()) as {
-                            regions?: { countries?: MinimalCountry[] }[]
-                        }
-
-                        const all =
-                            json?.regions
-                                ?.flatMap((r) => r?.countries ?? [])
-                                .map((c) => ({
-                                    iso_2: (c?.iso_2 ?? "").trim(),
-                                    display_name: (c?.display_name ?? "").trim(),
-                                }))
-                                .filter((c) => c.iso_2 && c.display_name) ?? []
-
-                        return all
-                    } catch (e: any) {
-                        console.warn(
-                            "[CountrySelect(cells)] same-origin fetch error:",
-                            e?.message || e
-                        )
-                        return null
-                    }
-                }
-
-                // Execute attempts
-                const backendCountries = await tryBackend()
-                const finalCountries =
-                    backendCountries && backendCountries.length > 0
-                        ? backendCountries
-                        : await trySameOrigin()
-
-                if (!cancelled) {
-                    setFallbackCountries(finalCountries ?? [])
-                    setIsLoadingFallback(false)
-
-                    console.log("[CountrySelect(cells)] fallback result", {
-                        backendTried: true,
-                        sameOriginUsed: !backendCountries,
-                        countriesCount: finalCountries?.length ?? 0,
-                        first10: (finalCountries ?? []).slice(0, 10),
-                    })
-                }
-            }
-
-            fetchCountries()
-            return () => {
-                cancelled = true
-            }
-        }, [hasProvidedCountries])
-
-        const handleSelect = (value: string) => {
-            props.onChange?.({
-                target: {
-                    name: props.name,
-                    value,
-                },
-            } as React.ChangeEvent<HTMLSelectElement>)
+        const headers: Record<string, string> = {
+          accept: "application/json",
+          "content-type": "application/json",
         }
 
-        const selectedLabel =
-            countryOptions.find((c) => c.value === props.value)?.label ||
-            (isLoadingFallback ? "Loading countries..." : "Choose a country")
+        if (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY) {
+          headers["x-publishable-api-key"] =
+            process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY as string
+        }
 
-        return (
-            <label className="label-md">
-                <p className="mb-2">Country</p>
-                <Listbox onChange={handleSelect} value={props.value}>
-                    <div className="relative">
-                        <Listbox.Button
-                            className={clsx(
-                                "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left cursor-default focus:outline-none border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular"
-                            )}
-                            data-testid="shipping-address-select"
-                        >
-                            {({ open }) => (
-                                <>
-                                    <span className="block truncate">{selectedLabel}</span>
-                                    <ChevronUpDown
-                                        className={clx("transition-rotate duration-200", {
-                                            "transform rotate-180": open,
-                                        })}
-                                    />
-                                </>
-                            )}
-                        </Listbox.Button>
+        const tryBackend = async () => {
+          try {
+            const res = await fetch(backendUrl, { headers, cache: "no-store" })
+            if (!res.ok) return null
 
-                        <Transition
-                            as={Fragment}
-                            leave="transition ease-in duration-100"
-                            leaveFrom="opacity-100"
-                            leaveTo="opacity-0"
-                        >
-                            <Listbox.Options
-                                className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-none sm:text-sm"
-                                data-testid="shipping-address-options"
-                            >
-                                {countryOptions.length === 0 ? (
-                                    <div className="px-6 py-4 text-ui-fg-subtle">
-                                        {isLoadingFallback
-                                            ? "Loading countries…"
-                                            : "No countries available"}
-                                    </div>
-                                ) : (
-                                    countryOptions.map(({ value, label }, index) => (
-                                        <Listbox.Option
-                                            key={index}
-                                            value={value}
-                                            className="cursor-default select-none relative pl-6 pr-10 hover:bg-gray-50 py-4 border-b"
-                                            data-testid="shipping-address-option"
-                                        >
-                                            {label}
-                                        </Listbox.Option>
-                                    ))
-                                )}
-                            </Listbox.Options>
-                        </Transition>
-                    </div>
-                </Listbox>
+            const json = (await res.json()) as {
+              regions?: { countries?: MinimalCountry[] }[]
+            }
 
-                {/* Hidden native select to keep RHF compatibility */}
-                <div className="hidden">
-                    <NativeSelect
-                        ref={innerRef}
-                        placeholder={placeholder}
-                        defaultValue={defaultValue}
-                        className={clsx("hidden w-full h-12 items-center bg-component-secondary")}
-                        {...props}
-                    >
-                        {countryOptions.map(({ value, label }, index) => (
-                            <option key={index} value={value}>
-                                {label}
-                            </option>
-                        ))}
-                    </NativeSelect>
-                </div>
-            </label>
-        )
+            const all =
+              json?.regions
+                ?.flatMap((r) => r?.countries ?? [])
+                .map((c) => ({
+                  iso_2: (c?.iso_2 ?? "").trim(),
+                  display_name: (c?.display_name ?? "").trim(),
+                }))
+                .filter((c) => c.iso_2 && c.display_name) ?? []
+
+            return all
+          } catch {
+            return null
+          }
+        }
+
+        const trySameOrigin = async () => {
+          try {
+            const origin =
+              typeof window !== "undefined" ? window.location.origin : ""
+            const sameOriginUrl = new URL(
+              "/store/regions?fields=id,name,*countries",
+              origin
+            ).toString()
+
+            const res = await fetch(sameOriginUrl, {
+              headers,
+              cache: "no-store",
+            })
+            if (!res.ok) return null
+
+            const json = (await res.json()) as {
+              regions?: { countries?: MinimalCountry[] }[]
+            }
+
+            const all =
+              json?.regions
+                ?.flatMap((r) => r?.countries ?? [])
+                .map((c) => ({
+                  iso_2: (c?.iso_2 ?? "").trim(),
+                  display_name: (c?.display_name ?? "").trim(),
+                }))
+                .filter((c) => c.iso_2 && c.display_name) ?? []
+
+            return all
+          } catch {
+            return null
+          }
+        }
+
+        const backendCountries = await tryBackend()
+        const finalCountries =
+          backendCountries && backendCountries.length > 0
+            ? backendCountries
+            : await trySameOrigin()
+
+        if (!cancelled) {
+          setFallbackCountries(finalCountries ?? [])
+          setIsLoadingFallback(false)
+        }
+      }
+
+      fetchCountries()
+      return () => {
+        cancelled = true
+      }
+    }, [hasProvidedCountries])
+
+    const handleSelect = (value: string) => {
+      props.onChange?.({
+        target: {
+          name: props.name,
+          value,
+        },
+      } as any)
     }
+
+    const selectedLabel =
+      countryOptions.find((c) => c.value === props.value)?.label ||
+      (isLoadingFallback ? "Cargando países..." : "Elige un país")
+
+    return (
+      <label className="label-md">
+        <p className="mb-2">País</p>
+
+        <Listbox onChange={handleSelect} value={props.value}>
+          <div className="relative">
+            <Listbox.Button
+              className={clsx(
+                "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left cursor-default focus:outline-none border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular"
+              )}
+              data-testid="country-select"
+            >
+              {({ open }) => (
+                <>
+                  <span className="block truncate">{selectedLabel}</span>
+                  <ChevronUpDown
+                    className={clx("transition-rotate duration-200", {
+                      "transform rotate-180": open,
+                    })}
+                  />
+                </>
+              )}
+            </Listbox.Button>
+
+            <Transition
+              as={Fragment}
+              leave="transition ease-in duration-100"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <Listbox.Options
+                className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-none sm:text-sm"
+                data-testid="country-options"
+              >
+                {countryOptions.length === 0 ? (
+                  <div className="px-6 py-4 text-ui-fg-subtle">
+                    {isLoadingFallback ? "Cargando países…" : "No hay países disponibles"}
+                  </div>
+                ) : (
+                  countryOptions.map(({ value, label }, index) => (
+                    <Listbox.Option
+                      key={`${value}-${index}`}
+                      value={value}
+                      className="cursor-default select-none relative pl-6 pr-10 hover:bg-gray-50 py-4 border-b"
+                      data-testid="country-option"
+                    >
+                      {label}
+                    </Listbox.Option>
+                  ))
+                )}
+              </Listbox.Options>
+            </Transition>
+          </div>
+        </Listbox>
+
+        {/* Hidden native select to keep RHF compatibility */}
+        <div className="hidden">
+          <NativeSelect
+            ref={innerRef}
+            placeholder={placeholder}
+            defaultValue={defaultValue}
+            className={clsx("hidden w-full h-12 items-center bg-component-secondary")}
+            {...props}
+          >
+            {countryOptions.map(({ value, label }, index) => (
+              <option key={index} value={value}>
+                {label}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+      </label>
+    )
+  }
 )
 
 CountrySelect.displayName = "CountrySelect"
-
 export default CountrySelect

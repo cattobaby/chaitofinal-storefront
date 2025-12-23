@@ -10,8 +10,8 @@ export const OrderAddresses = async ({ singleOrder }: { singleOrder: any }) => {
 
   return (
     <Card className="px-4 grid sm:grid-cols-2 gap-4">
-      <div className="flex flex-col ">
-        <h4 className="label-md text-primary">Shipping address</h4>
+      <div className="flex flex-col">
+        <h4 className="label-md text-primary">Dirección de envío</h4>
         <p className="label-md text-secondary">
           {`${singleOrder.shipping_address.first_name} ${singleOrder.shipping_address.last_name}`}
         </p>
@@ -29,13 +29,16 @@ export const OrderAddresses = async ({ singleOrder }: { singleOrder: any }) => {
           }`}
         </p>
         <p className="label-md text-secondary">
-          {`${user.email}, ${singleOrder.shipping_address.phone || user.phone}`}
+          {`${user.email}, ${singleOrder.shipping_address.phone || user.phone || ""}`}
         </p>
       </div>
+
       <div>
-        <h4 className="label-md text-primary">Billing address</h4>
+        <h4 className="label-md text-primary">Dirección de facturación</h4>
         {singleOrder.billing_address.id === singleOrder.shipping_address.id ? (
-          <p className="label-md text-secondary">Same as shipping address</p>
+          <p className="label-md text-secondary">
+            Igual que la dirección de envío
+          </p>
         ) : (
           <>
             <p className="label-md text-secondary">
@@ -55,9 +58,7 @@ export const OrderAddresses = async ({ singleOrder }: { singleOrder: any }) => {
               }`}
             </p>
             <p className="label-md text-secondary">
-              {`${user.email}, ${
-                singleOrder.billing_address.phone || user.phone
-              }`}
+              {`${user.email}, ${singleOrder.billing_address.phone || user.phone || ""}`}
             </p>
           </>
         )}
