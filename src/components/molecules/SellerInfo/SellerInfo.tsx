@@ -32,7 +32,7 @@ export const SellerInfo = ({
         <h3 className="heading-sm text-primary">{name}</h3>
         <div className="flex items-center gap-2 border-b pb-4">
           <StarRating starSize={16} rate={rating || 0} />
-          <span className="text-md text-secondary">{reviewCount} reviews</span>
+          <span className="text-md text-secondary">{reviewCount} reseñas</span>
         </div>
         <div className="mt-4">
           {!header &&

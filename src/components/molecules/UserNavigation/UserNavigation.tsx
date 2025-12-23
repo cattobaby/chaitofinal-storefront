@@ -11,28 +11,28 @@ import { usePathname } from "next/navigation"
 
 const navigationItems = [
   {
-    label: "Orders",
+    label: "Pedidos",
     href: "/user/orders",
   },
   {
 
-    label: "Messages",
+    label: "Mensajes",
     href: "/user/messages",
   },
   {
-    label: "Returns",
+    label: "Devoluciones",
     href: "/user/returns",
   },
   {
-    label: "Addresses",
+    label: "Direcciones",
     href: "/user/addresses",
   },
   {
-    label: "Reviews",
+    label: "Reseñas",
     href: "/user/reviews",
   },
   {
-    label: "Wishlist",
+    label: "Lista de deseos",
     href: "/user/wishlist",
   },
 ]
@@ -51,7 +51,7 @@ export const UserNavigation = () => {
           className="relative"
         >
           {item.label}
-          {item.label === "Messages" && Boolean(unreads?.length) && (
+          {item.label === "Mensajes" && Boolean(unreads?.length) && (
             <Badge className="absolute top-3 left-24 w-4 h-4 p-0">
               {unreads?.length}
             </Badge>
@@ -63,7 +63,7 @@ export const UserNavigation = () => {
         href={"/user/settings"}
         active={path === "/user/settings"}
       >
-        Settings
+        Configuración
       </NavigationItem>
       <LogoutButton className="w-full text-left" />
     </Card>

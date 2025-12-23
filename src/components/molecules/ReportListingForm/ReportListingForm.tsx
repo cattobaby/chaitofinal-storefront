@@ -9,14 +9,14 @@ import { cn } from '@/lib/utils';
 const reasonOptions = [
   { label: '', value: '', hidden: true },
   {
-    label: 'Trademark, Copyright or DMCA Violation',
-    value: 'Trademark, Copyright or DMCA Violation',
+    label: 'Infracción de marca, derechos de autor o DMCA',
+    value: 'Infracción de marca, derechos de autor o DMCA',
   },
 ];
 
 const formSchema = z.object({
-  reason: z.string().nonempty('Please select reason'),
-  comment: z.string().nonempty('Please add comment'),
+  reason: z.string().nonempty('Selecciona un motivo'),
+  comment: z.string().nonempty('Agrega un comentario'),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -55,7 +55,7 @@ export const ReportListingForm = ({
                   errors?.reason && 'text-negative'
                 )}
               >
-                Reason
+                Motivo
               </p>
               <SelectField
                 options={reasonOptions}
@@ -82,7 +82,7 @@ export const ReportListingForm = ({
                   errors?.comment && 'text-negative'
                 )}
               >
-                Comment
+                Comentario
               </p>
               <Textarea
                 rows={5}
@@ -104,7 +104,7 @@ export const ReportListingForm = ({
               type='submit'
               className='w-full py-3 uppercase'
             >
-              Report Listing
+              Reportar publicación
             </Button>
           </div>
         </form>
@@ -112,14 +112,10 @@ export const ReportListingForm = ({
         <div className='text-center'>
           <div className='px-4 pb-5'>
             <h4 className='heading-lg uppercase'>
-              Thank you!
+              ¡Gracias!
             </h4>
             <p className='max-w-[466px] mx-auto mt-4 text-lg text-secondary'>
-              We&apos;ll check the listing to see if it
-              violates our guidelines and take the necessary
-              action to ensure a safe shopping experience
-              for everyone. Thank you for helping us
-              maintain a trusted community.
+              Revisaremos la publicación para ver si incumple nuestras políticas y tomaremos las medidas necesarias para garantizar una experiencia de compra segura para todos. Gracias por ayudarnos a mantener una comunidad confiable.
             </p>
           </div>
 
@@ -128,7 +124,7 @@ export const ReportListingForm = ({
               className='w-full py-3 uppercase'
               onClick={onClose}
             >
-              Got it
+              Entendido
             </Button>
           </div>
         </div>

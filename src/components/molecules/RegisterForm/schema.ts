@@ -1,21 +1,21 @@
 import { z } from "zod"
 
 export const registerFormSchema = z.object({
-    firstName: z.string().nonempty("Please enter first name"),
-    lastName: z.string().nonempty("Please enter last name"),
-    email: z.string().nonempty("Please enter email").email("Invalid email"),
+    firstName: z.string().nonempty("Ingresa tu nombre"),
+    lastName: z.string().nonempty("Ingresa tu apellido"),
+    email: z.string().nonempty("Ingresa tu correo").email("Correo inválido"),
     password: z
         .string()
-        .nonempty("Please enter password")
-        .min(8, "Password must be at least 8 characters long")
+        .nonempty("Ingresa tu contraseña")
+        .min(8, "La contraseña debe tener al menos 8 caracteres")
         .regex(/^(?=.*[A-Z])(?=.*[!@#$%^&*])/, {
             message:
-                "Password must contain at least one uppercase letter and one special character",
+                "La contraseña debe incluir al menos una letra mayúscula y un carácter especial",
         }),
     phone: z
         .string()
-        .min(6, "Please enter phone number")
-        .regex(/^\+?\d+$/, { message: "Mobile phone must contain digits only" }),
+        .min(6, "Ingresa tu número de teléfono")
+        .regex(/^\+?\d+$/, { message: "El teléfono debe contener solo dígitos" }),
     // 👇 NEW: optional gender, but constrained to concrete values
     gender: z.preprocess(
         (val) => (val === "" ? undefined : val),

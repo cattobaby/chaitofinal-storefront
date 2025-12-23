@@ -63,21 +63,21 @@ export const ParcelAccordionItems = ({
                 onClick={openHandler}
             >
                 <p className="label-md col-span-3">
-                    Order #{order.display_id}:{" "}
+                    Pedido #{order.display_id}:{" "}
                     <span className="text-primary font-semibold uppercase">
             {statusLabel}
           </span>
                 </p>
 
                 <p className="label-md col-span-2 px-2">
-                    Seller:{" "}
+                    Vendedor:{" "}
                     <span className="text-primary font-semibold">
             {order?.seller?.name}
           </span>
                 </p>
 
                 <p className="label-md col-span-2 text-center px-2">
-                    Shipping:{" "}
+                    Envío:{" "}
                     <span className="text-primary font-semibold">
             {convertToLocale({ amount: order.shipping_total, currency_code })}
           </span>
@@ -85,7 +85,7 @@ export const ParcelAccordionItems = ({
 
                 <div className="flex items-center gap-4 justify-end">
                     <p className="label-md">
-                        {totalItems > 1 ? `${totalItems} Items` : `${totalItems} Item`}
+                        {totalItems === 1 ? `${totalItems} artículo` : `${totalItems} artículos`}
                     </p>
                     <CollapseIcon
                         size={20}

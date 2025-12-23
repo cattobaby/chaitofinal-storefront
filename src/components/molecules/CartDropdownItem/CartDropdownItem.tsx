@@ -29,7 +29,7 @@ export const CartDropdownItem = ({
                 ) : (
                     <Image
                         src={"/images/placeholder.svg"}
-                        alt="Product thumbnail"
+                        alt="Miniatura del producto"
                         width={50}
                         height={66}
                         className="rounded-xs w-[50px] h-[66px] object-contain opacity-30"
@@ -46,7 +46,7 @@ export const CartDropdownItem = ({
                         </p>
                     ))}
                     <p>
-                        Quantity: <span className="text-primary">{item.quantity}</span>
+                        Cantidad: <span className="text-primary">{item.quantity}</span>
                     </p>
                 </div>
 

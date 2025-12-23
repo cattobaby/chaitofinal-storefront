@@ -119,58 +119,58 @@ const Form: React.FC<Props> = ({ regions, handleClose }) => {
             <div className="px-4 space-y-4">
                 <div className="max-w-full grid grid-cols-2 items-top gap-4 mb-4">
                     <LabeledInput
-                        label="Address name"
-                        placeholder="Type address name"
+                        label="Nombre de la dirección"
+                        placeholder="Escribe el nombre de la dirección"
                         className="col-span-2"
                         error={errors.firstName as FieldError}
                         {...register("addressName")}
                     />
 
                     <LabeledInput
-                        label="First name"
-                        placeholder="Type first name"
+                        label="Nombre"
+                        placeholder="Escribe tu nombre"
                         error={errors.firstName as FieldError}
                         {...register("firstName")}
                     />
 
                     <LabeledInput
-                        label="Last name"
-                        placeholder="Type last name"
+                        label="Apellido"
+                        placeholder="Escribe tu apellido"
                         error={errors.firstName as FieldError}
                         {...register("lastName")}
                     />
 
                     <LabeledInput
-                        label="Company (optional)"
-                        placeholder="Type company"
+                        label="Empresa (opcional)"
+                        placeholder="Escribe la empresa"
                         error={errors.company as FieldError}
                         {...register("company")}
                     />
 
                     <LabeledInput
-                        label="Address"
-                        placeholder="Type address"
+                        label="Dirección"
+                        placeholder="Escribe la dirección"
                         error={errors.address as FieldError}
                         {...register("address")}
                     />
 
                     <LabeledInput
-                        label="City"
-                        placeholder="Type city"
+                        label="Ciudad"
+                        placeholder="Escribe la ciudad"
                         error={errors.city as FieldError}
                         {...register("city")}
                     />
 
                     <LabeledInput
-                        label="Postal code"
-                        placeholder="Type postal code"
+                        label="Código postal"
+                        placeholder="Escribe el código postal"
                         error={errors.postalCode as FieldError}
                         {...register("postalCode")}
                     />
 
                     <LabeledInput
-                        label="State / Province"
-                        placeholder="Type state / province"
+                        label="Estado / Provincia"
+                        placeholder="Escribe el estado / provincia"
                         error={errors.province as FieldError}
                         {...register("province")}
                     />
@@ -192,8 +192,8 @@ const Form: React.FC<Props> = ({ regions, handleClose }) => {
                     </div>
 
                     <LabeledInput
-                        label="Phone"
-                        placeholder="Type phone number"
+                        label="Teléfono"
+                        placeholder="Escribe el número de teléfono"
                         error={errors.phone as FieldError}
                         {...register("phone")}
                     />
@@ -201,7 +201,7 @@ const Form: React.FC<Props> = ({ regions, handleClose }) => {
 
                 {error && <p className="label-md text-negative">{error}</p>}
 
-                <Button className="w-full">Save address</Button>
+                <Button className="w-full">Guardar dirección</Button>
             </div>
         </form>
     )

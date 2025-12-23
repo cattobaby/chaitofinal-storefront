@@ -16,7 +16,7 @@ export const VisualSearch = () => {
         if (!file) return
 
         if (!ACCEPTED_TYPES.includes(file.type)) {
-            alert("Please upload a valid image (PNG, JPG, WEBP)")
+            alert("Sube una imagen válida (PNG, JPG, WEBP)")
             return
         }
 
@@ -37,7 +37,7 @@ export const VisualSearch = () => {
             })
 
             if (!response.ok) {
-                throw new Error("Failed to search")
+                throw new Error("No se pudo realizar la búsqueda")
             }
 
             const data = await response.json()
@@ -47,7 +47,7 @@ export const VisualSearch = () => {
                 const ids = data.matches.map((m: any) => m.id).join(",")
                 router.push(`/categories?visual_ids=${ids}`)
             } else {
-                alert("No similar products found.")
+                alert("No se encontraron productos similares.")
             }
 
             // Reset
@@ -57,7 +57,7 @@ export const VisualSearch = () => {
         } catch (error) {
             console.error("Visual search error", error)
             setIsUploading(false)
-            alert("Something went wrong searching by image.")
+            alert("Ocurrió un error al buscar por imagen.")
         }
     }
 
@@ -76,7 +76,7 @@ export const VisualSearch = () => {
                 onClick={() => inputRef.current?.click()}
                 disabled={isUploading}
                 className="p-2 text-neutral-500 hover:text-brand-700 transition-colors"
-                title="Search by Image"
+                title="Buscar por imagen"
             >
                 {isUploading ? (
                     <Spinner className="animate-spin" />

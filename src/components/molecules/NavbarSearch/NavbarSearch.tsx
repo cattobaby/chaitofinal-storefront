@@ -35,7 +35,7 @@ export const NavbarSearch = () => {
         if (!file) return
 
         if (!ACCEPTED_TYPES.includes(file.type)) {
-            alert("Please upload a valid image (PNG, JPG, WEBP)")
+            alert("Sube una imagen válida (PNG, JPG, WEBP)")
             return
         }
 
@@ -69,7 +69,7 @@ export const NavbarSearch = () => {
             )
 
             if (!response.ok) {
-                throw new Error("Failed to search")
+                throw new Error("No se pudo realizar la búsqueda")
             }
 
             const data = await response.json()
@@ -78,11 +78,11 @@ export const NavbarSearch = () => {
                 const ids = data.matches.map((m: any) => m.id).join(",")
                 router.push(`/categories?visual_ids=${ids}`)
             } else {
-                alert("No similar products found.")
+                alert("No se encontraron productos similares.")
             }
         } catch (err) {
             console.error("Visual search error", err)
-            alert("Something went wrong searching by image.")
+            alert("Ocurrió un error al buscar por imagen.")
         } finally {
             setIsUploading(false)
             if (fileInputRef.current) {

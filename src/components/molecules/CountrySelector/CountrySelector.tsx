@@ -70,8 +70,8 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
       if (result.removedItems.length > 0) {
         const itemsList = result.removedItems.join(", ")
         toast.info({
-          title: "Cart updated",
-          description: `${itemsList} ${result.removedItems.length === 1 ? "is" : "are"} not available in ${option.label} and ${result.removedItems.length === 1 ? "was" : "were"} removed from your cart.`,
+          title: "Carrito actualizado",
+          description: `${itemsList} ${result.removedItems.length === 1 ? "no está disponible" : "no están disponibles"} en ${option.label} y ${result.removedItems.length === 1 ? "se eliminó" : "se eliminaron"} de tu carrito.`,
         })
       }
       router.push(result.newPath)
@@ -79,8 +79,8 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
     } catch (error: any) {
       console.error("[CountrySelector] updateRegionWithValidation error", error)
       toast.error({
-        title: "Error switching region",
-        description: error?.message || "Failed to update region. Please try again.",
+        title: "Error al cambiar de región",
+        description: error?.message || "No se pudo actualizar la región. Inténtalo de nuevo.",
       })
     }
   }
@@ -88,7 +88,7 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
   return (
     <div className="md:flex gap-2 items-center justify-end relative z-50">
       {/* FIX: Text white for header visibility */}
-      <Label className="label-md hidden md:block text-white/90">Shipping to</Label>
+      <Label className="label-md hidden md:block text-white/90">Envío a</Label>
       <div>
         <Listbox
           onChange={handleChange}
@@ -105,7 +105,7 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
                 <>
                   {/* @ts-ignore */}
                   <ReactCountryFlag
-                    alt={`${current.country?.toUpperCase()} flag`}
+                    alt={`Bandera de ${current.country?.toUpperCase()}`}
                     svg
                     style={{
                       width: "20px",

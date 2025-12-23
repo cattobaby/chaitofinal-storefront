@@ -23,7 +23,7 @@ export const CategoryNavbar = ({
           "label-md uppercase px-4 my-3 md:my-0 flex items-center justify-between"
         )}
       >
-        All Products
+        Todos los productos
       </LocalizedClientLink>
       {categories?.map(({ id, handle, name }) => (
         <LocalizedClientLink

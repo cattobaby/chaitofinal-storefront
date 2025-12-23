@@ -70,27 +70,27 @@ const Form: React.FC<Props> = ({ handleClose }) => {
       <div className="px-4 space-y-4">
         <div className="max-w-full grid grid-cols-2 items-top gap-4 mb-4">
           <LabeledInput
-            label="First name"
-            placeholder="Type first name"
+            label="Nombre"
+            placeholder="Escribe tu nombre"
             error={errors.firstName as FieldError}
             {...register("firstName")}
           />
           <LabeledInput
-            label="Last name"
-            placeholder="Type last name"
+            label="Apellido"
+            placeholder="Escribe tu apellido"
             error={errors.lastName as FieldError}
             {...register("lastName")}
           />
           <LabeledInput
-            label="Phone"
-            placeholder="Type phone number"
+            label="Teléfono"
+            placeholder="Escribe el número de teléfono"
             error={errors.phone as FieldError}
             {...register("phone")}
           />
-          <LabeledInput label="Email" disabled {...register("email")} />
+          <LabeledInput label="Correo" disabled {...register("email")} />
         </div>
         {error && <p className="label-md text-negative">{error}</p>}
-        <Button className="w-full ">Save</Button>
+        <Button className="w-full ">Guardar</Button>
       </div>
     </form>
   )

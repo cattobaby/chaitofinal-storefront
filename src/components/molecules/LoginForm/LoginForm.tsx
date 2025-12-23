@@ -57,31 +57,31 @@ const Form = () => {
   return (
     <main className="container">
       <h1 className="heading-xl text-center uppercase my-6">
-        Log in to your account
+        Inicia sesión en tu cuenta
       </h1>
       <form onSubmit={handleSubmit(submit)}>
         <div className="w-96 max-w-full mx-auto space-y-4">
           <LabeledInput
             label="E-mail"
-            placeholder="Your e-mail address"
+            placeholder="Tu correo electrónico"
             error={errors.email as FieldError}
             {...register("email")}
           />
           <LabeledInput
             label="Password"
-            placeholder="Your password"
+            placeholder="Tu contraseña"
             type="password"
             error={errors.password as FieldError}
             {...register("password")}
           />
           {error && <p className="label-md text-negative">{error}</p>}
           <Button className="w-full" disabled={isSubmitting}>
-            Log in
+            Iniciar sesión
           </Button>
           <p className="text-center label-md">
-            Don&apos;t have an account yet?{" "}
+            ¿Aún no tienes cuenta?{" "}
             <LocalizedClientLink href="/user/register" className="underline">
-              Sign up!
+              ¡Regístrate!
             </LocalizedClientLink>
           </p>
         </div>

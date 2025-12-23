@@ -58,10 +58,10 @@ export const ParcelAccordion = ({
         <>
             <div className="grid grid-cols-2 sm:grid-cols-5 text-secondary border bg-component-secondary py-6 px-4 rounded-sm w-full">
                 <div className="sm:col-span-4 flex flex-col lg:flex-row lg:items-center justify-between lg:gap-4 sm:pr-10">
-                    <h2 className="heading-sm truncate">ORDER SET {orderDisplayId}</h2>
+                    <h2 className="heading-sm truncate">PEDIDO {orderDisplayId}</h2>
 
                     <h2 className="label-md">
-                        Order date:{" "}
+                        Fecha del pedido:{" "}
                         <span className="text-primary lg:block xl:inline-block">
               {format(typeof createdAt === "string" ? new Date(createdAt) : createdAt, "yyyy-MM-dd")}
             </span>
@@ -95,7 +95,7 @@ export const ParcelAccordion = ({
                     {idForLink ? (
                         <LocalizedClientLink href={`/user/orders/${idForLink}`}>
                             <Button variant="tonal">
-                                <span className="label-md text-primary">VIEW ORDER</span>
+                                <span className="label-md text-primary">VER PEDIDO</span>
                             </Button>
                         </LocalizedClientLink>
                     ) : null}

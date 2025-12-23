@@ -26,7 +26,7 @@ export const SellerReview = ({ review }: { review: SingleProductReview }) => {
             <Divider orientation="vertical" className="h-auto" />
             <div>
               <p className="label-md text-primary">
-                Reply from {review.seller.name}{" "}
+                Respuesta de {review.seller.name}{" "}
                 <span className="text-secondary">
                   |{" "}
                   {formatDistanceToNow(new Date(review.updated_at), {

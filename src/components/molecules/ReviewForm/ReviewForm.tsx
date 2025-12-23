@@ -74,7 +74,7 @@ const Form: React.FC<Props> = ({ handleClose, seller }) => {
       <div className="px-4 space-y-4">
         <div className="max-w-full grid grid-cols-1 items-top gap-4 mb-4">
           <div>
-            <label className="label-sm block mb-2">Rating</label>
+            <label className="label-sm block mb-2">Calificación</label>
             <InteractiveStarRating
               value={rating}
               onChange={(value) => setValue("rating", value)}
@@ -88,13 +88,13 @@ const Form: React.FC<Props> = ({ handleClose, seller }) => {
           </div>
 
           <label className={cn("label-sm block relative")}>
-            <p className={cn(error && "text-negative")}>Your opinion</p>
+            <p className={cn(error && "text-negative")}>Tu opinión</p>
             <textarea
               className={cn(
                 "w-full px-4 py-3 h-32 border rounded-sm bg-component-secondary focus:border-primary focus:outline-none focus:ring-0 relative",
                 error && "border-negative focus:border-negative"
               )}
-              placeholder="Write your opinion about this seller..."
+              placeholder="Escribe tu opinión sobre este vendedor..."
               {...register("opinion")}
             />
             <div
@@ -113,7 +113,7 @@ const Form: React.FC<Props> = ({ handleClose, seller }) => {
           </label>
         </div>
         {error && <p className="label-md text-negative">{error}</p>}
-        <Button className="w-full">SUBMIT REVIEW</Button>
+        <Button className="w-full">ENVIAR RESEÑA</Button>
       </div>
     </form>
   )

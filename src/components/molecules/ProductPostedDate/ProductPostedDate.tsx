@@ -12,7 +12,7 @@ export const ProductPostedDate = async ({
 
   return (
     <p className='label-md text-secondary'>
-      Posted: {postedDate}
+      Publicado: {postedDate}
     </p>
   );
 };

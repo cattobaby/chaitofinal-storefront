@@ -64,7 +64,7 @@ const Form = ({
   const updatePassword = async (data: FieldValues) => {
     if (form.getValues("confirmPassword") !== form.getValues("newPassword")) {
       setConfirmPasswordError({
-        message: "New password and old password cannot be identical",
+        message: "La confirmación no coincide con la nueva contraseña",
         type: "custom",
       } as FieldError)
       return
@@ -76,10 +76,10 @@ const Form = ({
       try {
         const res = await updateCustomerPassword(data.newPassword, token!)
         if (res.success) {
-          toast.success("Password updated")
+          toast.success("Contraseña actualizada")
           setSuccess(true)
         } else {
-          toast.error(res.error || "Something went wrong")
+          toast.error(res.error || "Algo salió mal")
         }
       } catch (err) {
         console.log(err)
@@ -94,18 +94,17 @@ const Form = ({
         level="h1"
         className="uppercase heading-md text-primary text-center"
       >
-        Password updated
+        Contraseña actualizada
       </Heading>
       <p className="text-center my-8">
-        Your password has been updated. You can now login with your new
-        password.
+        Tu contraseña se actualizó. Ahora puedes iniciar sesión con tu nueva contraseña.
       </p>
       <LocalizedClientLink href="/user">
         <Button
           className="uppercase py-3 px-6 !font-semibold w-full"
           size="large"
         >
-          Go to user page
+          Ir a mi cuenta
         </Button>
       </LocalizedClientLink>
     </div>
@@ -115,13 +114,13 @@ const Form = ({
       onSubmit={handleSubmit(updatePassword)}
     >
       <LabeledInput
-        label="Current password"
+        label="Contraseña actual"
         type="password"
         error={errors.currentPassword as FieldError}
         {...register("currentPassword")}
       />
       <LabeledInput
-        label="New password"
+        label="Nueva contraseña"
         type="password"
         error={errors.newPassword as FieldError}
         {...register("newPassword")}
@@ -131,12 +130,12 @@ const Form = ({
         setError={setNewPasswordError}
       />
       <LabeledInput
-        label="Confirm new password"
+        label="Confirmar nueva contraseña"
         type="password"
         error={confirmPasswordError as FieldError}
         {...register("confirmPassword")}
       />
-      <Button className="w-full my-4">Change password</Button>
+      <Button className="w-full my-4">Cambiar contraseña</Button>
     </form>
   )
 }

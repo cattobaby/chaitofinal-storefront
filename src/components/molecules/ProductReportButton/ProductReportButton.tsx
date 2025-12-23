@@ -14,11 +14,11 @@ export const ProductReportButton = () => {
         variant='tonal'
         onClick={() => setOpenModal(true)}
       >
-        Report listing
+        Reportar publicación
       </Button>
       {openModal && (
         <Modal
-          heading='Report listing'
+          heading='Reportar publicación'
           onClose={() => setOpenModal(false)}
         >
           <ReportListingForm

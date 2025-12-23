@@ -68,7 +68,7 @@ export const ProductCarouselIndicator = ({
               >
                 <Image
                   src={decodeURIComponent(slide.url)}
-                  alt="Product carousel Indicator"
+                  alt="Indicador del carrusel del producto"
                   width={64}
                   height={64}
                   className={cn(
