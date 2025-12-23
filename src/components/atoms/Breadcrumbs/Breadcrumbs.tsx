@@ -14,7 +14,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
   const pathname = usePathname()
 
   return (
-    <nav className={cn("flex", className)} aria-label="Breadcrumb">
+    <nav className={cn("flex", className)} aria-label="Ruta de navegación">
       <ol className="inline-flex items-center gap-2">
         {items.map(({ path, label }, index) => {
           const isActive = pathname === path

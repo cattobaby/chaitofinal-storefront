@@ -23,7 +23,7 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
         className
       )}
     >
-      {children || "Logout"}
+      {children || "Cerrar sesión"}
     </button>
   )
 }

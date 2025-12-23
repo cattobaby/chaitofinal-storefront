@@ -30,7 +30,7 @@ export function Avatar({
         width={150}
         height={150}
         src={src}
-        alt={alt || "Avatar"}
+        alt={alt || "Foto de perfil"}
         className={cn(
           baseClasses,
           sizeClasses[size],
