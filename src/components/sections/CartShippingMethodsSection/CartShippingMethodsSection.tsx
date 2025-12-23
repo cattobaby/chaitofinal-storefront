@@ -323,13 +323,13 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                     onClick={() => setMode("pickup")}
                     type="button"
                 >
-                    Recoger en warehouse
+                    Recoger en almacén
                 </Button>
             </div>
 
             {loading && (
                 <Text className="text-md text-ui-fg-subtle mb-4">
-                    {mode === "delivery" ? "Calculando precio de envío..." : "Cargando warehouses disponibles..."}
+                    {mode === "delivery" ? "Calculando precio de envío..." : "Cargando almacenes disponibles..."}
                 </Text>
             )}
 
@@ -359,7 +359,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
 
                     {pickupLocations.length === 0 ? (
                         <Text className="txt-medium text-ui-fg-subtle">
-                            No hay warehouses habilitados para recojo en este momento.
+                            No hay almacenes habilitados para recojo en este momento.
                         </Text>
                     ) : (
                         <div className="flex flex-col gap-2">

@@ -1,4 +1,3 @@
-// /home/willman/WebstormProjects/new/new/storefront/src/components/sections/CartReview/PaymentButton.tsx
 "use client"
 
 import ErrorMessage from "@/components/molecules/ErrorMessage/ErrorMessage"
@@ -94,7 +93,9 @@ const StripePaymentButton = ({
         } catch (error: any) {
             if (error?.message !== "NEXT_REDIRECT") {
                 setErrorMessage(
-                    error?.message?.replace("Error setting up the request: ", "")
+                    error?.message
+                        ?.replace("Error setting up the request: ", "")
+                        ?.replace("Error al configurar la solicitud: ", "")
                 )
             }
         } finally {
@@ -209,7 +210,9 @@ const ManualTestPaymentButton = ({
         } catch (error: any) {
             if (error?.message !== "NEXT_REDIRECT") {
                 setErrorMessage(
-                    error?.message?.replace("Error setting up the request: ", "")
+                    error?.message
+                        ?.replace("Error setting up the request: ", "")
+                        ?.replace("Error al configurar la solicitud: ", "")
                 )
             }
         } finally {

@@ -63,7 +63,7 @@ export const Header = async () => {
                         <div
                             role="img"
                             aria-label="Chaito"
-                            className="h-8 sm:h-10 w-[120px] bg-green-300
+                            className="h-8 sm:h-10 w-[120px] bg-green-500
                 [mask-image:url('/Logo.svg')] [mask-repeat:no-repeat] [mask-size:contain] [mask-position:left_center]
                 [-webkit-mask-image:url('/Logo.svg')] [-webkit-mask-repeat:no-repeat] [-webkit-mask-size:contain] [-webkit-mask-position:left_center]"
                         />

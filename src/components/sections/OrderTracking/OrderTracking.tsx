@@ -1,4 +1,3 @@
-// storefront/src/components/sections/OrderTracking/OrderTracking.tsx
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
@@ -163,7 +162,7 @@ export function OrderTracking({
                                 <img src={delivery.url} alt="QR de entrega" className="max-w-[220px] border rounded-sm" />
                             ) : (
                                 <div className="text-sm break-all">
-                                    <span className="text-secondary">Link:</span>{" "}
+                                    <span className="text-secondary">Enlace:</span>{" "}
                                     <span className="text-primary">{delivery.url}</span>
                                 </div>
                             )

@@ -53,7 +53,7 @@ export function ShopByStyleSection() {
                         loading="lazy"
                         fetchPriority="high"
                         src="/images/shop-by-styles/Image.jpg"
-                        alt="Models showcasing luxury fashion styles"
+                        alt="Modelos mostrando estilos de moda de lujo"
                         width={700}
                         height={600}
                         className="object-cover rounded-sm w-full h-auto"
