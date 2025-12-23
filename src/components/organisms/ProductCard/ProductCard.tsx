@@ -68,7 +68,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
                     />
                 ) : (
                     <div className="flex items-center justify-center w-full h-full text-neutral-300">
-                        No Image
+                        Sin Imagen
                     </div>
                 )}
 

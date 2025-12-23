@@ -1,71 +1,43 @@
-"use client"
-
+import { Card, Divider } from "@/components/atoms"
 import { convertToLocale } from "@/lib/helpers/money"
-import React from "react"
 
-type CartTotalsProps = {
-    totals: {
-        item_total?: number | null
-        total?: number | null
-        shipping_total?: number | null
-        gift_card_total?: number | null
-        currency_code: string
-        shipping_subtotal?: number | null
-    }
-}
+export const OrderTotals = ({ orderSet }: { orderSet: any }) => {
+    const delivery = orderSet.shipping_total
+    const subtotal = orderSet.total - delivery
+    const total = orderSet.total
 
-const OrderTotals: React.FC<CartTotalsProps> = ({ totals }) => {
-    const {
-        item_total,
-        currency_code,
-        total,
-        gift_card_total,
-        shipping_subtotal,
-    } = totals
+    const currency_code = orderSet.payment_collection.currency_code
 
     return (
-        <div className="border rounded-sm p-4 bg-white">
-            <div className="flex flex-col gap-y-2 txt-medium text-ui-fg-subtle ">
-                <div className="flex items-center justify-between">
-                    <span className="flex gap-x-1 items-center">Items</span>
-                    <span data-testid="cart-subtotal" data-value={item_total || 0}>
-            {convertToLocale({ amount: item_total ?? 0, currency_code })}
-          </span>
-                </div>
-                <div className="flex items-center justify-between">
-                    <span>Delivery</span>
-                    <span data-testid="cart-shipping" data-value={shipping_subtotal || 0}>
-            {convertToLocale({ amount: shipping_subtotal ?? 0, currency_code })}
-          </span>
-                </div>
-                {!!gift_card_total && (
-                    <div className="flex items-center justify-between">
-                        <span>Gift card</span>
-                        <span
-                            className="text-ui-fg-interactive"
-                            data-testid="cart-gift-card-amount"
-                            data-value={gift_card_total || 0}
-                        >
-              -{" "}
-                            {convertToLocale({ amount: gift_card_total ?? 0, currency_code })}
-            </span>
-                    </div>
-                )}
-            </div>
-            <div className="h-px w-full border-b border-gray-200 my-4" />
-            <div className="flex items-center justify-between text-ui-fg-base mb-2 txt-medium ">
-                <span>Total</span>
-                {/* UPDATED: text-green-700 for high visibility on the total amount */}
-                <span
-                    className="txt-xlarge-plus text-green-700 font-bold"
-                    data-testid="cart-total"
-                    data-value={total || 0}
-                >
-          {convertToLocale({ amount: total ?? 0, currency_code })}
+        <Card className="mb-8 p-4">
+            <p className="text-secondary label-md mb-2 flex justify-between">
+                Subtotal:
+                <span className="text-primary">
+          {convertToLocale({
+              amount: subtotal,
+              currency_code,
+          })}
         </span>
-            </div>
-        </div>
+            </p>
+            <p className="text-secondary label-md flex justify-between">
+                Envío:
+                <span className="text-primary">
+          {convertToLocale({
+              amount: delivery,
+              currency_code,
+          })}
+        </span>
+            </p>
+            <Divider className="my-4" />
+            <p className="text-secondary label-md flex justify-between items-center">
+                Total:{" "}
+                <span className="text-green-700 heading-md">
+          {convertToLocale({
+              amount: total,
+              currency_code,
+          })}
+        </span>
+            </p>
+        </Card>
     )
 }
-
-export default OrderTotals

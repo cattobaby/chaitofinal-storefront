@@ -1,10 +1,10 @@
 export const navigation = [
-  {
-    label: "TO WRITE",
-    href: "/user/reviews",
-  },
-  {
-    label: "WRITTEN",
-    href: "/user/reviews/written",
-  },
+    {
+        label: "POR ESCRIBIR",
+        href: "/user/reviews",
+    },
+    {
+        label: "ESCRITAS",
+        href: "/user/reviews/written",
+    },
 ]

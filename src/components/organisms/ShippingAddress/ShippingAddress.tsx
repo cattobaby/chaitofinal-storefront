@@ -24,8 +24,7 @@ const ShippingAddress = ({
 
     const [formData, setFormData] = useState<Record<string, any>>(() => {
         const metadata =
-            (cart?.shipping_address?.metadata as Record<string, any> | undefined) ??
-            {}
+            (cart?.shipping_address?.metadata as Record<string, any> | undefined) ?? {}
 
         const gpsLat =
             metadata?.gps_latitude != null ? String(metadata.gps_latitude) : ""
@@ -37,8 +36,7 @@ const ShippingAddress = ({
             "shipping_address.last_name": cart?.shipping_address?.last_name || "",
             "shipping_address.address_1": cart?.shipping_address?.address_1 || "",
             "shipping_address.company": cart?.shipping_address?.company || "",
-            "shipping_address.postal_code":
-                cart?.shipping_address?.postal_code || "",
+            "shipping_address.postal_code": cart?.shipping_address?.postal_code || "",
             "shipping_address.city": cart?.shipping_address?.city || "",
             "shipping_address.country_code":
                 cart?.shipping_address?.country_code || locale,
@@ -97,7 +95,6 @@ const ShippingAddress = ({
     }
 
     useEffect(() => {
-        // Ensure cart is not null and has a shipping_address before setting form data
         if (cart && cart.shipping_address) {
             setFormAddress(cart.shipping_address, cart.email || undefined)
         }
@@ -140,7 +137,7 @@ const ShippingAddress = ({
             {customer && (addressesInRegion?.length || 0) > 0 && (
                 <Container className="mb-6 flex flex-col gap-y-4 p-0">
                     <p className="text-small-regular">
-                        {`Hi ${customer.first_name}, do you want to use one of your saved addresses?`}
+                        {`Hola ${customer.first_name}, ¿quieres usar una de tus direcciones guardadas?`}
                     </p>
                     <div className="grid grid-cols-1 gap-x-4 lg:grid-cols-2">
                         <AddressSelect
@@ -157,7 +154,7 @@ const ShippingAddress = ({
             )}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <Input
-                    label="First name"
+                    label="Nombre"
                     name="shipping_address.first_name"
                     autoComplete="given-name"
                     value={formData["shipping_address.first_name"]}
@@ -166,7 +163,7 @@ const ShippingAddress = ({
                     data-testid="shipping-first-name-input"
                 />
                 <Input
-                    label="Last name"
+                    label="Apellido"
                     name="shipping_address.last_name"
                     autoComplete="family-name"
                     value={formData["shipping_address.last_name"]}
@@ -175,7 +172,7 @@ const ShippingAddress = ({
                     data-testid="shipping-last-name-input"
                 />
                 <Input
-                    label="Address"
+                    label="Dirección"
                     name="shipping_address.address_1"
                     autoComplete="address-line1"
                     value={formData["shipping_address.address_1"]}
@@ -184,7 +181,7 @@ const ShippingAddress = ({
                     data-testid="shipping-address-input"
                 />
                 <Input
-                    label="Company"
+                    label="Empresa"
                     name="shipping_address.company"
                     value={formData["shipping_address.company"]}
                     onChange={handleChange}
@@ -192,7 +189,7 @@ const ShippingAddress = ({
                     data-testid="shipping-company-input"
                 />
                 <Input
-                    label="Postal code"
+                    label="Código postal"
                     name="shipping_address.postal_code"
                     autoComplete="postal-code"
                     value={formData["shipping_address.postal_code"]}
@@ -201,7 +198,7 @@ const ShippingAddress = ({
                     data-testid="shipping-postal-code-input"
                 />
                 <Input
-                    label="City"
+                    label="Ciudad"
                     name="shipping_address.city"
                     autoComplete="address-level2"
                     value={formData["shipping_address.city"]}
@@ -219,7 +216,7 @@ const ShippingAddress = ({
                     data-testid="shipping-country-select"
                 />
                 <Input
-                    label="State / Province"
+                    label="Departamento / Provincia"
                     name="shipping_address.province"
                     autoComplete="address-level1"
                     value={formData["shipping_address.province"]}
@@ -232,7 +229,7 @@ const ShippingAddress = ({
                     label="Email"
                     name="email"
                     type="email"
-                    title="Enter a valid email address."
+                    title="Ingresa un correo válido."
                     autoComplete="email"
                     value={formData.email}
                     onChange={handleChange}
@@ -240,7 +237,7 @@ const ShippingAddress = ({
                     data-testid="shipping-email-input"
                 />
                 <Input
-                    label="Phone"
+                    label="Teléfono"
                     name="shipping_address.phone"
                     autoComplete="tel"
                     value={formData["shipping_address.phone"]}
@@ -252,18 +249,18 @@ const ShippingAddress = ({
             {/* GPS inputs + map */}
             <div className="my-4 grid grid-cols-2 gap-4">
                 <Input
-                    label="Latitude (optional)"
+                    label="Latitud (opcional)"
                     name="shipping_address.metadata.gps_latitude"
                     autoComplete="off"
-                    placeholder="e.g. -17.7609"
+                    placeholder="p. ej. -17.7609"
                     value={formData["shipping_address.metadata.gps_latitude"] ?? ""}
                     onChange={handleChange}
                 />
                 <Input
-                    label="Longitude (optional)"
+                    label="Longitud (opcional)"
                     name="shipping_address.metadata.gps_longitude"
                     autoComplete="off"
-                    placeholder="e.g. -63.1681"
+                    placeholder="p. ej. -63.1681"
                     value={formData["shipping_address.metadata.gps_longitude"] ?? ""}
                     onChange={handleChange}
                 />
