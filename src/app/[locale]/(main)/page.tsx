@@ -1,7 +1,4 @@
-import {
-    Hero,
-    ProductListing,
-} from "@/components/sections"
+import { Hero, ProductListing } from "@/components/sections"
 
 import type { Metadata } from "next"
 import { headers } from "next/headers"
@@ -85,9 +82,8 @@ export default async function Home({
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
     const siteName = "Chaito Marketplace"
 
-    // Preload the first image for performance LCP
     return (
-        <main className="flex flex-col gap-6 bg-neutral-50 pb-12">
+        <main className="flex flex-col gap-6 bg-gradient-to-b from-green-50 via-neutral-50 to-neutral-50 pb-12">
             <link
                 rel="preload"
                 as="image"
@@ -95,6 +91,7 @@ export default async function Home({
                 imageSrcSet="/images/hero/image1.jpg 700w"
                 imageSizes="(min-width: 1024px) 50vw, 100vw"
             />
+
             <Script
                 id="ld-org"
                 type="application/ld+json"
@@ -112,13 +109,11 @@ export default async function Home({
             {/* 1. MAIN BANNER CAROUSEL */}
             <div className="container mx-auto px-4 lg:px-8 mt-6">
                 <Hero
-                    // Passing the array of images creates the carousel
                     images={[
                         "/images/hero/image1.jpg",
                         "/images/hero/image2.jpg",
-                        "/images/hero/image3.jpg"
+                        "/images/hero/image3.jpg",
                     ]}
-                    // Keeping text props empty as requested for "non-invasive" look
                     heading=""
                     paragraph=""
                     buttons={[]}
@@ -127,12 +122,13 @@ export default async function Home({
 
             {/* 2. PRODUCT FEED */}
             <div className="container mx-auto px-4 lg:px-8">
-                <div className="flex flex-col gap-4">
-                    {/* UPDATED: Changed from brand-700 to green-700 to accentuate recommendations */}
-                    <h2 className="text-xl font-bold uppercase tracking-wide text-green-700">
-                        Recomendados
-                    </h2>
-                    <ProductListing showSidebar={false} locale={locale} />
+                <div className="rounded-xl bg-white ring-1 ring-green-100 p-4 sm:p-6">
+                    <div className="flex flex-col gap-4">
+                        <h2 className="text-xl font-bold uppercase tracking-wide text-green-700">
+                            Recomendados
+                        </h2>
+                        <ProductListing showSidebar={false} locale={locale} />
+                    </div>
                 </div>
             </div>
         </main>
