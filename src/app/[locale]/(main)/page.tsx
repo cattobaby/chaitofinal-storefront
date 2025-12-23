@@ -122,7 +122,8 @@ export default async function Home({
 
             {/* 2. PRODUCT FEED */}
             <div className="container mx-auto px-4 lg:px-8">
-                <div className="rounded-xl bg-white ring-1 ring-green-100 p-4 sm:p-6">
+                {/* ✅ Antes: bg-white + ring. Ahora: transparente para usar el fondo del page */}
+                <div className="rounded-xl p-4 sm:p-6">
                     <div className="flex flex-col gap-4">
                         <h2 className="text-xl font-bold uppercase tracking-wide text-green-700">
                             Recomendados
