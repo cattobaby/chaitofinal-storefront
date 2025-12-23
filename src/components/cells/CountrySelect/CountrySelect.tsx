@@ -1,3 +1,5 @@
+"use client"
+
 import {
   forwardRef,
   useEffect,
@@ -9,7 +11,9 @@ import {
 } from "react"
 
 import { HttpTypes } from "@medusajs/types"
-import NativeSelect, { NativeSelectProps } from "@/components/molecules/NativeSelect/NativeSelect"
+import NativeSelect, {
+  NativeSelectProps,
+} from "@/components/molecules/NativeSelect/NativeSelect"
 import clsx from "clsx"
 import { Listbox, Transition } from "@headlessui/react"
 import { clx } from "@medusajs/ui"
@@ -69,7 +73,10 @@ const CountrySelect = forwardRef<HTMLSelectElement, Props>(
             process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL.trim()) ||
           "http://localhost:9000"
 
-        const backendUrl = `${backendBase.replace(/\/$/, "")}/store/regions?fields=id,name,*countries`
+        const backendUrl = `${backendBase.replace(
+          /\/$/,
+          ""
+        )}/store/regions?fields=id,name,*countries`
 
         const headers: Record<string, string> = {
           accept: "application/json",
@@ -114,10 +121,7 @@ const CountrySelect = forwardRef<HTMLSelectElement, Props>(
               origin
             ).toString()
 
-            const res = await fetch(sameOriginUrl, {
-              headers,
-              cache: "no-store",
-            })
+            const res = await fetch(sameOriginUrl, { headers, cache: "no-store" })
             if (!res.ok) return null
 
             const json = (await res.json()) as {
@@ -206,7 +210,9 @@ const CountrySelect = forwardRef<HTMLSelectElement, Props>(
               >
                 {countryOptions.length === 0 ? (
                   <div className="px-6 py-4 text-ui-fg-subtle">
-                    {isLoadingFallback ? "Cargando países…" : "No hay países disponibles"}
+                    {isLoadingFallback
+                      ? "Cargando países…"
+                      : "No hay países disponibles"}
                   </div>
                 ) : (
                   countryOptions.map(({ value, label }, index) => (
