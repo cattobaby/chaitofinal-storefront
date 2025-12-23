@@ -15,7 +15,6 @@ import { Badge } from "@/components/atoms"
 import CountrySelector from "@/components/molecules/CountrySelector/CountrySelector"
 import { listRegions } from "@/lib/data/regions"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
-import { MessageButton } from "@/components/molecules/MessageButton/MessageButton"
 import { NavbarSearch } from "@/components/molecules/NavbarSearch/NavbarSearch"
 
 export const Header = async () => {
@@ -98,8 +97,6 @@ export const Header = async () => {
             <div className="hidden md:block">
               <CountrySelector regions={regions} />
             </div>
-
-            {user && <MessageButton />}
 
             <UserDropdown user={user} />
 
