@@ -9,9 +9,10 @@ import { notFound } from "next/navigation"
 import isBot from "@/lib/helpers/isBot"
 import { headers } from "next/headers"
 import Script from "next/script"
-import { getRegion, listRegions } from "@/lib/data/regions"
+import { listRegions } from "@/lib/data/regions"
 import { listProducts } from "@/lib/data/products"
 import { toHreflang } from "@/lib/helpers/hreflang"
+import { getCurrencyCodeFromCookieHeader } from "@/lib/server/currency"
 
 export const revalidate = 60
 
@@ -90,13 +91,17 @@ async function Category({
     const { category: handle, locale } = await params
 
     const category = await getCategoryByHandle([handle])
-
     if (!category) {
         return notFound()
     }
-    const currency_code = (await getRegion(locale))?.currency_code || "usd"
-    const ua = (await headers()).get("user-agent") || ""
+
+    const headersList = await headers()
+    const ua = headersList.get("user-agent") || ""
     const bot = isBot(ua)
+
+    // ✅ currency from cookie header
+    const cookieHeader = headersList.get("cookie")
+    const currencyCode = getCurrencyCodeFromCookieHeader(cookieHeader)
 
     const breadcrumbsItems = [
         {
@@ -106,10 +111,10 @@ async function Category({
     ]
 
     // Small cached list for JSON-LD itemList
-    const headersList = await headers()
     const host = headersList.get("host")
     const protocol = headersList.get("x-forwarded-proto") || "https"
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+
     const {
         response: { products: jsonLdProducts },
     } = await listProducts({
@@ -156,6 +161,7 @@ async function Category({
                     }),
                 }}
             />
+
             <div className="hidden md:block mb-2">
                 <Breadcrumbs items={breadcrumbsItems} />
             </div>
@@ -164,12 +170,17 @@ async function Category({
 
             <Suspense fallback={<ProductListingSkeleton />}>
                 {bot || !ALGOLIA_ID || !ALGOLIA_SEARCH_KEY ? (
-                    <ProductListing category_id={category.id} showSidebar />
+                    <ProductListing
+                        category_id={category.id}
+                        showSidebar
+                        locale={locale}
+                        currencyCode={currencyCode}
+                    />
                 ) : (
                     <AlgoliaProductsListing
                         category_id={category.id}
                         locale={locale}
-                        currency_code={currency_code}
+                        currency_code={currencyCode.toLowerCase()}
                     />
                 )}
             </Suspense>

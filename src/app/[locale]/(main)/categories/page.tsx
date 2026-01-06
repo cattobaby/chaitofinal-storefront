@@ -3,7 +3,6 @@ import { Suspense } from "react"
 
 import { Breadcrumbs } from "@/components/atoms"
 import { AlgoliaProductsListing, ProductListing } from "@/components/sections"
-import { getRegion } from "@/lib/data/regions"
 import isBot from "@/lib/helpers/isBot"
 import { headers } from "next/headers"
 import type { Metadata } from "next"
@@ -11,6 +10,7 @@ import Script from "next/script"
 import { listRegions } from "@/lib/data/regions"
 import { listProducts } from "@/lib/data/products"
 import { toHreflang } from "@/lib/helpers/hreflang"
+import { getCurrencyCodeFromCookieHeader } from "@/lib/server/currency"
 
 export const revalidate = 60
 
@@ -75,8 +75,13 @@ async function AllCategories({
 }) {
     const { locale } = await params
 
-    const ua = (await headers()).get("user-agent") || ""
+    const headersList = await headers()
+    const ua = headersList.get("user-agent") || ""
     const bot = isBot(ua)
+
+    // ✅ currency from cookie header
+    const cookieHeader = headersList.get("cookie")
+    const currencyCode = getCurrencyCodeFromCookieHeader(cookieHeader)
 
     const breadcrumbsItems = [
         {
@@ -85,13 +90,11 @@ async function AllCategories({
         },
     ]
 
-    const currency_code = (await getRegion(locale))?.currency_code || "usd"
-
     // Fetch a small cached list for ItemList JSON-LD
-    const headersList = await headers()
     const host = headersList.get("host")
     const protocol = headersList.get("x-forwarded-proto") || "https"
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+
     const {
         response: { products: jsonLdProducts },
     } = await listProducts({
@@ -137,6 +140,7 @@ async function AllCategories({
                     }),
                 }}
             />
+
             <div className="hidden md:block mb-2">
                 <Breadcrumbs items={breadcrumbsItems} />
             </div>
@@ -145,11 +149,11 @@ async function AllCategories({
 
             <Suspense fallback={<ProductListingSkeleton />}>
                 {bot || !ALGOLIA_ID || !ALGOLIA_SEARCH_KEY ? (
-                    <ProductListing showSidebar locale={locale} />
+                    <ProductListing showSidebar locale={locale} currencyCode={currencyCode} />
                 ) : (
                     <AlgoliaProductsListing
                         locale={locale}
-                        currency_code={currency_code}
+                        currency_code={currencyCode.toLowerCase()}
                     />
                 )}
             </Suspense>

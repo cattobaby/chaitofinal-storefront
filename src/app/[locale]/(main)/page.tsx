@@ -5,6 +5,7 @@ import { headers } from "next/headers"
 import Script from "next/script"
 import { listRegions } from "@/lib/data/regions"
 import { toHreflang } from "@/lib/helpers/hreflang"
+import { getCurrencyCodeFromCookieHeader } from "@/lib/server/currency"
 
 export async function generateMetadata({
                                            params,
@@ -76,11 +77,16 @@ export default async function Home({
     params: Promise<{ locale: string }>
 }) {
     const { locale } = await params
+
     const headersList = await headers()
     const host = headersList.get("host")
     const protocol = headersList.get("x-forwarded-proto") || "https"
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
     const siteName = "Chaito Marketplace"
+
+    // ✅ currency from cookie header
+    const cookieHeader = headersList.get("cookie")
+    const currencyCode = getCurrencyCodeFromCookieHeader(cookieHeader)
 
     return (
         <main className="flex flex-col gap-6 bg-gradient-to-b from-green-50 via-neutral-50 to-neutral-50 pb-12">
@@ -122,13 +128,18 @@ export default async function Home({
 
             {/* 2. PRODUCT FEED */}
             <div className="container mx-auto px-4 lg:px-8">
-                {/* ✅ Antes: bg-white + ring. Ahora: transparente para usar el fondo del page */}
                 <div className="rounded-xl p-4 sm:p-6">
                     <div className="flex flex-col gap-4">
                         <h2 className="text-xl font-bold uppercase tracking-wide text-green-700">
                             Recomendados
                         </h2>
-                        <ProductListing showSidebar={false} locale={locale} />
+
+                        {/* ✅ pass currencyCode */}
+                        <ProductListing
+                            showSidebar={false}
+                            locale={locale}
+                            currencyCode={currencyCode}
+                        />
                     </div>
                 </div>
             </div>

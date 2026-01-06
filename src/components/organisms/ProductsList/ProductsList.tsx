@@ -2,15 +2,21 @@ import { ProductCard } from "../ProductCard/ProductCard"
 import { HttpTypes } from "@medusajs/types"
 
 export const ProductsList = ({
-  products,
-}: {
-  products: HttpTypes.StoreProduct[]
+                                 products,
+                                 currencyCode,
+                             }: {
+    products: HttpTypes.StoreProduct[]
+    currencyCode?: string
 }) => {
-  return (
-    <>
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} api_product={product} />
-      ))}
-    </>
-  )
+    return (
+        <>
+            {products.map((product) => (
+                <ProductCard
+                    key={product.id}
+                    product={product}
+                    currencyCode={currencyCode}
+                />
+            ))}
+        </>
+    )
 }

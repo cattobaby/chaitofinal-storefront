@@ -18,12 +18,8 @@ const optionsAsKeymap = (
     variantOptions: HttpTypes.StoreProductVariant["options"]
 ) => {
     return variantOptions?.reduce(
-        (
-            acc: Record<string, string>,
-            varopt: HttpTypes.StoreProductOptionValue
-        ) => {
+        (acc: Record<string, string>, varopt: HttpTypes.StoreProductOptionValue) => {
             acc[varopt.option?.title.toLowerCase() || ""] = varopt.value
-
             return acc
         },
         {}
@@ -35,11 +31,13 @@ export const ProductDetailsHeader = ({
                                          locale,
                                          user,
                                          wishlist,
+                                         currencyCode,
                                      }: {
     product: HttpTypes.StoreProduct & { seller?: SellerProps }
     locale: string
     user: HttpTypes.StoreCustomer | null
     wishlist?: Wishlist[]
+    currencyCode: string
 }) => {
     const { onAddToCart, cart } = useCartContext()
     const [isAdding, setIsAdding] = useState(false)
@@ -47,12 +45,11 @@ export const ProductDetailsHeader = ({
 
     const { cheapestVariant, cheapestPrice } = getProductPrice({
         product,
+        currencyCode,
     })
 
-    // Check if product has any valid prices in current region
     const hasAnyPrice = cheapestPrice !== null && cheapestVariant !== null
 
-    // set default variant
     const selectedVariant = hasAnyPrice
         ? {
             ...optionsAsKeymap(cheapestVariant.options ?? null),
@@ -60,7 +57,6 @@ export const ProductDetailsHeader = ({
         }
         : allSearchParams
 
-    // get selected variant id
     const variantId =
         product.variants?.find(({ options }: { options: any }) =>
             options?.every((option: any) =>
@@ -70,24 +66,22 @@ export const ProductDetailsHeader = ({
             )
         )?.id || ""
 
-    // get variant price
     const { variantPrice } = getProductPrice({
         product,
         variantId,
+        currencyCode,
     })
 
     const variantStock =
-        product.variants?.find(({ id }) => id === variantId)?.inventory_quantity ||
-        0
+        product.variants?.find(({ id }) => id === variantId)?.inventory_quantity || 0
 
     const variantHasPrice = !!product.variants?.find(({ id }) => id === variantId)
         ?.calculated_price
 
     const isVariantStockMaxLimitReached =
-        (cart?.items?.find((item) => item.variant_id === variantId)?.quantity ??
-            0) >= variantStock
+        (cart?.items?.find((item) => item.variant_id === variantId)?.quantity ?? 0) >=
+        variantStock
 
-    // add the selected variant to the cart
     const handleAddToCart = async () => {
         if (!variantId || !hasAnyPrice) return null
 
@@ -113,7 +107,7 @@ export const ProductDetailsHeader = ({
                 onAddToCart(storeCartLineItem, variantPrice?.currency_code || "bob")
             }
             await addToCart({
-                variantId: variantId,
+                variantId,
                 quantity: 1,
                 countryCode: locale,
             })
@@ -131,10 +125,9 @@ export const ProductDetailsHeader = ({
         <div className="border rounded-sm p-5">
             <div className="flex justify-between">
                 <div>
-                    <h2 className="label-md text-secondary">
-                        {/* {product?.brand || "No brand"} */}
-                    </h2>
+                    <h2 className="label-md text-secondary"></h2>
                     <h1 className="heading-lg text-primary">{product.title}</h1>
+
                     <div className="mt-2 flex gap-2 items-center">
                         {hasAnyPrice && variantPrice ? (
                             <>
@@ -155,25 +148,20 @@ export const ProductDetailsHeader = ({
                         )}
                     </div>
                 </div>
+
                 <div>
-                    {/* Add to Wishlist */}
-                    <WishlistButton
-                        productId={product.id}
-                        wishlist={wishlist}
-                        user={user}
-                    />
+                    <WishlistButton productId={product.id} wishlist={wishlist} user={user} />
                 </div>
             </div>
-            {/* Product Variants */}
+
             {hasAnyPrice && (
                 <ProductVariants product={product} selectedVariant={selectedVariant} />
             )}
-            {/* Add to Cart */}
+
             <Button
                 onClick={handleAddToCart}
                 disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
                 loading={isAdding}
-                // UPDATED: Added bg-green-700/hover:bg-green-800 text-white to force green button
                 className="w-full uppercase mb-4 py-3 flex justify-center bg-green-700 hover:bg-green-800 text-white border-transparent disabled:bg-neutral-200"
                 size="large"
             >
@@ -183,7 +171,6 @@ export const ProductDetailsHeader = ({
                         ? "ADD TO CART"
                         : "OUT OF STOCK"}
             </Button>
-            {/* Seller message */}
 
             {user && product.seller && (
                 <Chat

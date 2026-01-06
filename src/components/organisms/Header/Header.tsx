@@ -13,11 +13,16 @@ import { getUserWishlists } from "@/lib/data/wishlist"
 import { Wishlist } from "@/types/wishlist"
 import { Badge } from "@/components/atoms"
 import CountrySelector from "@/components/molecules/CountrySelector/CountrySelector"
+import CurrencySelector from "@/components/molecules/CurrencySelector/CurrencySelector"
 import { listRegions } from "@/lib/data/regions"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { NavbarSearch } from "@/components/molecules/NavbarSearch/NavbarSearch"
 
-export const Header = async () => {
+type HeaderProps = {
+    initialCurrency?: string
+}
+
+export const Header = async ({ initialCurrency }: HeaderProps) => {
     const user = await retrieveCustomer()
     let wishlist: Wishlist[] = []
 
@@ -36,6 +41,8 @@ export const Header = async () => {
         parentCategories: HttpTypes.StoreProductCategory[]
     }
 
+    const normalizedCurrency = (initialCurrency || "BOB").toUpperCase()
+
     return (
         <header
             data-debug="HEADER_V2"
@@ -50,7 +57,6 @@ export const Header = async () => {
                     />
 
                     <LocalizedClientLink href="/" className="flex items-center gap-3">
-                        {/* VERCEL LOGO */}
                         <Image
                             src="/vercel.svg"
                             width={40}
@@ -59,7 +65,6 @@ export const Header = async () => {
                             className="object-contain h-10 sm:h-10 w-auto brightness-0 invert"
                         />
 
-                        {/* CHAITO LOGO (verde con mask) */}
                         <div
                             role="img"
                             aria-label="Chaito"
@@ -92,7 +97,15 @@ export const Header = async () => {
 
                     {/* Icons Row */}
                     <div className="flex items-center gap-2 sm:gap-4">
-                        <div className="hidden md:block">
+                        {/* Desktop: Currency + Country */}
+                        <div className="hidden md:flex items-center gap-2">
+                            <CurrencySelector
+                                initialCurrency={normalizedCurrency}
+                                options={[
+                                    { code: "BOB", label: "Bolivianos" },
+                                    { code: "USDT", label: "Tether" },
+                                ]}
+                            />
                             <CountrySelector regions={regions} />
                         </div>
 
@@ -119,7 +132,7 @@ export const Header = async () => {
                 </div>
             </div>
 
-            {/* Mobile Search Row (deja ver el degradado del header) */}
+            {/* Mobile Search Row */}
             <div className="lg:hidden px-4 pb-3 w-full bg-transparent">
                 <NavbarSearch />
             </div>

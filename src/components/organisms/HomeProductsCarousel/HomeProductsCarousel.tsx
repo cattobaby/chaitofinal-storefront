@@ -1,62 +1,63 @@
+// /home/willman/WebstormProjects/new/new/storefront/src/components/organisms/HomeProductsCarousel/HomeProductsCarousel.tsx
+
 import { Carousel } from "@/components/cells"
 import { ProductCard } from "../ProductCard/ProductCard"
 import { listProducts } from "@/lib/data/products"
 import { Product } from "@/types/product"
 import { HttpTypes } from "@medusajs/types"
-import { getProductPrice } from "@/lib/helpers/get-product-price"
+import { DEFAULT_CURRENCY, normalizeCurrency } from "@/lib/data/currency"
 
 export const HomeProductsCarousel = async ({
-  locale,
-  sellerProducts,
-  home,
-}: {
-  locale: string
-  sellerProducts: Product[]
-  home: boolean
+                                               locale,
+                                               sellerProducts,
+                                               home,
+                                               currencyCode,
+                                           }: {
+    locale: string
+    sellerProducts: Product[]
+    home: boolean
+    /**
+     * ✅ Inyéctalo desde server (layout/page) para que sea global
+     */
+    currencyCode?: string
 }) => {
-  const {
-    response: { products },
-  } = await listProducts({
-    countryCode: locale,
-    queryParams: {
-      limit: home ? 4 : undefined,
-      order: "created_at",
-      handle: home
-        ? undefined
-        : sellerProducts.map((product) => product.handle),
-    },
-    forceCache: !home,
-  })
+    const resolvedCurrency = normalizeCurrency(currencyCode || DEFAULT_CURRENCY)
 
-  if (!products.length && !sellerProducts.length) return null
+    const handles = home ? undefined : sellerProducts.map((p) => p.handle)
 
-  return (
-    <div className="flex justify-center w-full">
-      <Carousel
-        align="start"
-        items={(sellerProducts.length ? sellerProducts : products).map(
-          (product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              api_product={
-                home
-                  ? (product as HttpTypes.StoreProduct)
-                  : products.find((p) => {
-                      const { cheapestPrice } = getProductPrice({
-                        product: p,
-                      })
-                      return (
-                        cheapestPrice &&
-                        p.id === product.id &&
-                        Boolean(cheapestPrice)
-                      )
-                    })
-              }
+    const {
+        response: { products },
+    } = await listProducts({
+        countryCode: locale,
+        queryParams: {
+            limit: home ? 4 : undefined,
+            order: "created_at",
+            handle: handles,
+        },
+        forceCache: !home,
+    })
+
+    if (!products.length) return null
+
+    // si venían handles, mantenemos el orden por handle
+    const ordered: HttpTypes.StoreProduct[] = handles?.length
+        ? [...(products as HttpTypes.StoreProduct[])].sort(
+            (a, b) => handles.indexOf(a.handle) - handles.indexOf(b.handle)
+        )
+        : (products as HttpTypes.StoreProduct[])
+
+    return (
+        <div className="flex justify-center w-full">
+            <Carousel
+                align="start"
+                items={ordered.map((product) => (
+                    <ProductCard
+                        key={product.id}
+                        product={product}
+                        currencyCode={resolvedCurrency}
+                    />
+                ))}
             />
-          )
-        )}
-      />
-    </div>
-  )
+        </div>
+    )
 }
