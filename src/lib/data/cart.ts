@@ -106,6 +106,7 @@ export async function retrieveCart(cartId?: string) {
                     "*payment_collection.payment_sessions",
                     "payment_collection.payment_sessions.*",
                     "payment_collection.payment_sessions.data",
+                    "*metadata" // ✅ IMPORTANT: Explicitly fetch metadata
                 ].join(","),
             },
             headers,
@@ -404,6 +405,15 @@ export async function setShippingMethod(
 
         const source = (args.data as any)?.source ?? "storefront_force"
 
+        // [DEBUG-PICKUP] 2. Log payload arriving at Server Action
+        console.log("[DEBUG-PICKUP] ServerAction: setShippingMethod calling FORCE", {
+            cartId: args.cartId,
+            optionId: args.shippingMethodId,
+            amountMinor,
+            data: args.data,
+            url: `${BASE_URL}/storeapp/shipping/force`
+        })
+
         const resp = await fetch(`${BASE_URL}/storeapp/shipping/force`, {
             method: "POST",
             headers,
@@ -428,6 +438,8 @@ export async function setShippingMethod(
         })
 
         const json = await resp.json().catch(() => ({}))
+        console.log("[DEBUG-PICKUP] ServerAction: FORCE response", { status: resp.status, json })
+
         if (!resp.ok) {
             return { ok: false, error: { message: json?.message || "FORCE failed" } }
         }
@@ -660,6 +672,19 @@ export async function placeOrder(cartId?: string) {
 
     const headers = {
         ...(await getAuthHeaders()),
+    }
+
+    // [DEBUG-PICKUP] 4. Inspect Cart Metadata BEFORE placing order
+    try {
+        console.log(`[DEBUG-PICKUP] placeOrder: Pre-flight check for Cart ${id}`)
+        const check = await sdk.client.fetch<HttpTypes.StoreCartResponse>(`/store/carts/${id}`, {
+            method: "GET",
+            query: { fields: "id,metadata" },
+            headers, cache: "no-cache"
+        })
+        console.log("[DEBUG-PICKUP] placeOrder: PRE-CHECK CART METADATA:", check.cart.metadata)
+    } catch (e) {
+        console.warn("[DEBUG-PICKUP] placeOrder: pre-check failed", e)
     }
 
     console.log(`${LOG} placeOrder:start`, { cartId: id })

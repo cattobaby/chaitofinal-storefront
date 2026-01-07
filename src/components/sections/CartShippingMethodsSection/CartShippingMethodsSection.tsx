@@ -60,6 +60,9 @@ function extractQuoteNumber(q: any): number | null {
     return null
 }
 
+// ✅ FIXED EXCHANGE RATE (USDT Calculation)
+const EXCHANGE_RATE = 6.96
+
 const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableShippingMethods }) => {
     const debug_id = useMemo(() => mkDebugId("ship_ui"), [])
     const searchParams = useSearchParams()
@@ -74,7 +77,6 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
 
     const [mode, setMode] = useState<"delivery" | "pickup">("delivery")
 
-    // Guardamos quote en MINOR (lo que llega) y en MAJOR (lo que usamos)
     const [deliveryQuoteMinor, setDeliveryQuoteMinor] = useState<number | null>(null)
     const [deliveryQuoteMajor, setDeliveryQuoteMajor] = useState<number | null>(null)
 
@@ -87,6 +89,27 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // ✅ 1. Determine USDT Mode from Cookie
+    const [displayCurrency, setDisplayCurrency] = useState(cart.currency_code || "bob")
+
+    useEffect(() => {
+        if (typeof document !== 'undefined') {
+            const match = document.cookie.match(/chaito_currency=([^;]+)/)
+            if (match && match[1]) {
+                setDisplayCurrency(match[1])
+            }
+        }
+    }, [isOpen])
+
+    const isUsdt = displayCurrency.toLowerCase() === "usdt"
+
+    // ✅ 2. Conversion Helper (Visual Only)
+    // If backend returns 50 Bs, and we want USDT, we divide by 6.96
+    const getDisplayAmount = (amountMajor: number | null) => {
+        if (amountMajor == null) return 0
+        return isUsdt ? amountMajor / EXCHANGE_RATE : amountMajor
+    }
 
     useEffect(() => {
         if (!isOpen) return
@@ -122,7 +145,6 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                 const minor = extractQuoteNumber(q)
                 if (minor == null) throw new Error("No se pudo interpretar el quote del envío.")
 
-                // ✅ TU FIX: quote viene en MINOR (1660) → lo pasamos a MAJOR (16.60)
                 const major = toMajor(minor, cart.currency_code)
 
                 if (!cancelled) {
@@ -197,12 +219,13 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                 if (deliveryReco?.distance_km != null) payloadData.distance_km = deliveryReco.distance_km
                 if (deliveryReco?.stock_location_id) payloadData.stock_location_id = deliveryReco.stock_location_id
             } else {
+                // ✅ Pickup Data Flags
                 payloadData.mode = "pickup"
+                payloadData.pickup = true // Extra explicit flag for backend
                 payloadData.source = "pickup_selection"
                 if (selectedPickup?.stock_location_id) payloadData.stock_location_id = selectedPickup.stock_location_id
             }
 
-            // ✅ IMPORTANTE: guardar el shipping en MAJOR para que sume bien con items (que están en MAJOR).
             let amountMajor: number | null = null
 
             if (mode === "delivery") {
@@ -212,44 +235,37 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                 }
                 amountMajor = deliveryQuoteMajor
             } else {
-                // pickup: calculamos quote al confirmar
-                const q = await calculateShippingOptionQuote({
-                    cartId: cart.id,
-                    optionId,
-                    data: { ...payloadData },
-                })
-
-                const minor = extractQuoteNumber(q)
-                if (minor == null) {
-                    setError("No se pudo interpretar el quote de pickup.")
-                    return
-                }
-
-                amountMajor = toMajor(minor, cart.currency_code)
+                // ✅ 3. FORCE PICKUP FREE
+                // We ignore the calculator and set 0 explicitly.
+                amountMajor = 0
             }
 
-            console.log("[ship] confirm", {
-                ms: Date.now() - t0,
+            // [DEBUG-PICKUP] 1. Log UI Payload
+            console.log("[DEBUG-PICKUP] Frontend: handleConfirm sending:", {
+                cartId: cart.id,
+                mode,
                 optionId,
                 amountMajor,
-                currency: cart.currency_code,
+                payloadData,
+                force: true
             })
 
-            // Ojo: tu helper actualmente se llama amountMinor.
-            // Pásale MAJOR igual (16.6), así el backend suma correcto.
             const res = await setShippingMethod({
                 cartId: cart.id,
                 shippingMethodId: optionId!,
                 sellerId,
                 data: payloadData,
-                amountMinor: amountMajor, // <- sí, el nombre está feo, pero evita tocar backend ahora
+                amountMinor: amountMajor,
+                force: true,
             })
 
             if (!res.ok) {
+                console.error("[DEBUG-PICKUP] Frontend: handleConfirm failed", res.error)
                 setError(res.error?.message || "Error al establecer el método de envío.")
                 return
             }
 
+            console.log("[DEBUG-PICKUP] Frontend: handleConfirm success")
             router.push(pathname + "?step=payment", { scroll: false })
         } catch (e: any) {
             setError(e?.message || "Ocurrió un error")
@@ -286,7 +302,8 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                                 <CartShippingMethodRow
                                     key={method.id}
                                     method={method}
-                                    currency_code={cart.currency_code}
+                                    // ✅ Pass Override to Row
+                                    currency_code={displayCurrency}
                                 />
                             ))}
                         </div>
@@ -345,8 +362,9 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                         <Text className="txt-medium text-ui-fg-subtle">
                             Envío{" "}
                             {convertToLocale({
-                                amount: deliveryQuoteMajor ?? 0, // ✅ MAJOR
-                                currency_code: cart.currency_code,
+                                // ✅ 4. Use calculated amount
+                                amount: getDisplayAmount(deliveryQuoteMajor),
+                                currency_code: displayCurrency,
                             })}
                         </Text>
                     )}
@@ -371,19 +389,19 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                                         key={loc.stock_location_id}
                                         type="button"
                                         className={[
-                                            "w-full text-left border rounded-md p-3",
-                                            selected ? "border-ui-fg-base" : "border-ui-border-base",
+                                            "w-full text-left border rounded-md p-3 transition-colors",
+                                            selected ? "border-green-600 bg-green-50" : "border-ui-border-base hover:bg-neutral-50",
                                         ].join(" ")}
                                         onClick={() => setSelectedPickup(loc)}
                                     >
                                         <div className="flex justify-between items-center">
                                             <div>
-                                                <Text className="txt-medium-plus">{loc.stock_location_name}</Text>
+                                                <Text className="txt-medium-plus font-semibold text-green-900">{loc.stock_location_name}</Text>
                                                 <Text className="txt-small text-ui-fg-subtle">
                                                     {loc.distance_km != null ? `Aprox. ${loc.distance_km.toFixed(1)} km` : "Distancia no disponible"}
                                                 </Text>
                                             </div>
-                                            <Text className="txt-small text-ui-fg-subtle">{selected ? "Seleccionado" : ""}</Text>
+                                            {selected && <CheckCircleSolid className="text-green-600" />}
                                         </div>
                                     </button>
                                 )
@@ -399,7 +417,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                         <CartShippingMethodRow
                             key={method.id}
                             method={method}
-                            currency_code={cart.currency_code}
+                            currency_code={displayCurrency} // ✅ Pass override
                         />
                     ))}
                 </div>

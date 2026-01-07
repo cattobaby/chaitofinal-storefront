@@ -7,6 +7,9 @@ import { convertToLocale } from "@/lib/helpers/money"
 import { HttpTypes } from "@medusajs/types"
 import { Text } from "@medusajs/ui"
 
+// ✅ EXCHANGE RATE CONSTANT
+const EXCHANGE_RATE = 6.96
+
 export const CartShippingMethodRow = ({
                                           method,
                                           currency_code,
@@ -18,7 +21,7 @@ export const CartShippingMethodRow = ({
         await removeShippingMethod(method.id)
     }
 
-    const amount =
+    const rawAmount =
         typeof method?.amount === "number" && Number.isFinite(method.amount)
             ? method.amount
             : 0
@@ -28,6 +31,13 @@ export const CartShippingMethodRow = ({
             ? currency_code
             : "bob"
 
+    // ✅ Calculation Logic
+    const isUsdt = safeCurrencyCode.toLowerCase() === "usdt"
+
+    // If USDT is selected, divide the stored BOB amount by 6.96.
+    // Otherwise show raw BOB amount.
+    const displayAmount = isUsdt ? rawAmount / EXCHANGE_RATE : rawAmount
+
     return (
         <div className="mb-4 border rounded-md p-4 flex items-center justify-between">
             <div>
@@ -35,7 +45,7 @@ export const CartShippingMethodRow = ({
                 <Text className="txt-medium text-ui-fg-subtle">
                     {method?.name}{" "}
                     {convertToLocale({
-                        amount, // ✅ MAJOR
+                        amount: displayAmount, // ✅ Use calculated amount
                         currency_code: safeCurrencyCode,
                     })}
                 </Text>
