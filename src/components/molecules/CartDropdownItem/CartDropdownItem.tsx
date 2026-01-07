@@ -1,6 +1,7 @@
 import { convertToLocale } from "@/lib/helpers/money"
 import { HttpTypes } from "@medusajs/types"
 import Image from "next/image"
+import { getCartItemPriceAmount } from "@/lib/helpers/get-cart-item-price"
 
 export const CartDropdownItem = ({
                                      item,
@@ -9,8 +10,14 @@ export const CartDropdownItem = ({
     item: HttpTypes.StoreCartLineItem
     currency_code: string
 }) => {
+    // ✅ 1. Get dynamic price (USDT)
+    const unitPrice = getCartItemPriceAmount(item, currency_code)
+
+    // ✅ 2. Calculate dynamic subtotal
+    const dynamicSubtotal = unitPrice * item.quantity
+
     const total = convertToLocale({
-        amount: item.subtotal ?? 0, // ✅ en tu tienda está en MAJOR
+        amount: dynamicSubtotal,
         currency_code,
     })
 

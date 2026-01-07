@@ -12,12 +12,21 @@ import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
+// ✅ 1. Imports for Server Currency
+import { headers } from "next/headers"
+import { getCurrencyCodeFromCookieHeader } from "@/lib/server/currency"
+
 export const metadata: Metadata = {
     title: "Finalizar compra",
     description: "Mi carrito - Finalizar compra",
 }
 
-export default async function CheckoutPage({}) {
+export default async function CheckoutPage() {
+    // ✅ 2. Read Cookie
+    const headersList = await headers()
+    const cookieHeader = headersList.get("cookie")
+    const currencyCode = getCurrencyCodeFromCookieHeader(cookieHeader)
+
     return (
         <Suspense
             fallback={
@@ -26,12 +35,14 @@ export default async function CheckoutPage({}) {
                 </div>
             }
         >
-            <CheckoutPageContent />
+            {/* ✅ 3. Pass it down */}
+            <CheckoutPageContent currencyCode={currencyCode} />
         </Suspense>
     )
 }
 
-async function CheckoutPageContent({}) {
+// ✅ 4. Accept the Prop
+async function CheckoutPageContent({ currencyCode }: { currencyCode: string }) {
     const cart = await retrieveCart()
 
     if (!cart) {
@@ -59,7 +70,8 @@ async function CheckoutPageContent({}) {
                     </div>
 
                     <div className="lg:col-span-5">
-                        <CartReview cart={cart} />
+                        {/* ✅ 5. Pass it to Review (Summary) */}
+                        <CartReview cart={cart} currencyCode={currencyCode} />
                     </div>
                 </div>
             </main>

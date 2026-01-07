@@ -5,6 +5,7 @@ import { filterValidCartItems } from "@/lib/helpers/filter-valid-cart-items"
 import { DeleteCartItemButton } from "@/components/molecules"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { UpdateCartItemButton } from "@/components/molecules/UpdateCartItemButton/UpdateCartItemButton"
+import { getCartItemPriceAmount } from "@/lib/helpers/get-cart-item-price"
 
 export const CartItemsProducts = ({
                                       products,
@@ -24,8 +25,12 @@ export const CartItemsProducts = ({
             {validProducts.map((product) => {
                 const { options } = product.variant ?? {}
 
+                // ✅ 1. Dynamic Price Calculation
+                const unitPrice = getCartItemPriceAmount(product, currency_code)
+                const dynamicSubtotal = unitPrice * product.quantity
+
                 const total = convertToLocale({
-                    amount: product.subtotal ?? 0, // ✅ MAJOR
+                    amount: dynamicSubtotal,
                     currency_code,
                 })
 

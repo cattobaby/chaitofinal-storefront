@@ -6,9 +6,11 @@ import NotFound from "@/app/not-found"
 export const ProductDetailsPage = async ({
                                              handle,
                                              locale,
+                                             currencyCode,
                                          }: {
     handle: string
     locale: string
+    currencyCode: string
 }) => {
     const prod = await listProducts({
         countryCode: locale,
@@ -29,14 +31,17 @@ export const ProductDetailsPage = async ({
                     <ProductGallery images={prod?.images || []} />
                 </div>
                 <div className="md:w-1/2 md:px-2">
-                    <ProductDetails product={prod} locale={locale} />
+                    <ProductDetails
+                        product={prod}
+                        locale={locale}
+                        currencyCode={currencyCode} // ✅ Pass it down
+                    />
                 </div>
             </div>
             <div className="my-8">
                 <HomeProductSection
                     heading="Más de este vendedor"
                     products={prod.seller?.products}
-                    // seller_handle={prod.seller?.handle}
                     locale={locale}
                 />
             </div>

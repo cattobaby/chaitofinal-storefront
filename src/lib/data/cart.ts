@@ -80,6 +80,8 @@ export async function retrieveCart(cartId?: string) {
                     "*items.product",
                     "*items.variant",
                     "*items.variant.options",
+                    // ✅ ADDED: Needed to find USDT prices in the frontend
+                    "*items.variant.prices",
                     "items.variant.options.option.title",
                     "*items.thumbnail",
                     "*items.metadata",

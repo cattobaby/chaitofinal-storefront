@@ -1,13 +1,20 @@
 import { CartItemsHeader, CartItemsProducts } from "@/components/cells"
 import { HttpTypes } from "@medusajs/types"
 
-export const CartItems = ({ cart }: { cart: HttpTypes.StoreCart | null }) => {
+// ✅ 1. Update props to accept currencyCode
+export const CartItems = ({
+                              cart,
+                              currencyCode
+                          }: {
+    cart: HttpTypes.StoreCart | null
+    currencyCode: string
+}) => {
     if (!cart) return null
 
     const groupedItems: any = groupItemsBySeller(cart)
 
-    const currency_code =
-        (cart as any)?.currency_code || (cart as any)?.region?.currency_code || "bob"
+    // ✅ 2. Determine display currency (Override > Cart > Default)
+    const displayCurrency = currencyCode || (cart as any)?.currency_code || (cart as any)?.region?.currency_code || "bob"
 
     return Object.keys(groupedItems).map((key) => (
         <div key={key} className="mb-4">
@@ -15,7 +22,8 @@ export const CartItems = ({ cart }: { cart: HttpTypes.StoreCart | null }) => {
             <CartItemsProducts
                 delete_item={false}
                 products={groupedItems[key].items || []}
-                currency_code={currency_code}
+                // ✅ 3. Pass the override currency
+                currency_code={displayCurrency}
             />
         </div>
     ))

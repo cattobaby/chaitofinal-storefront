@@ -7,7 +7,8 @@ import CartPromotionCode from "../CartReview/CartPromotionCode"
 import { retrieveCustomer } from "@/lib/data/customer"
 import { redirect } from "next/navigation"
 
-export const Cart = async () => {
+// ✅ Component accepts currencyCode as a prop now
+export const Cart = async ({ currencyCode }: { currencyCode: string }) => {
     const customer = await retrieveCustomer()
 
     if (!customer) {
@@ -23,7 +24,8 @@ export const Cart = async () => {
     return (
         <>
             <div className="col-span-12 lg:col-span-6">
-                <CartItems cart={cart} />
+                {/* ✅ Pass currency code to CartItems */}
+                <CartItems cart={cart} currencyCode={currencyCode} />
             </div>
 
             <div className="lg:col-span-2"></div>
@@ -34,6 +36,7 @@ export const Cart = async () => {
                 </div>
 
                 <div className="border rounded-sm p-4 h-fit">
+                    {/* ✅ Pass 'activeCurrencyCode' and 'cart' to enable recalculation */}
                     <CartSummary
                         item_total={(cart as any)?.subtotal ?? 0}
                         shipping_total={(cart as any)?.shipping_total ?? 0}
@@ -41,6 +44,10 @@ export const Cart = async () => {
                         currency_code={(cart as any)?.currency_code || "bob"}
                         tax={(cart as any)?.tax_total ?? 0}
                         discount_total={(cart as any)?.discount_total ?? 0}
+
+                        // New Props for override
+                        cart={cart}
+                        activeCurrencyCode={currencyCode}
                     />
 
                     <LocalizedClientLink href="/checkout?step=address">

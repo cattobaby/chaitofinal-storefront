@@ -1,14 +1,20 @@
 "use client"
 
 import PaymentButton from "./PaymentButton"
-import { CartItems } from "./CartItems"
+import { CartItems } from "./CartItems" // NOTE: Ensure this component also accepts currencyCode (see step 3)
 import { CartSummary } from "@/components/organisms"
 
-const Review = ({ cart }: { cart: any }) => {
+// ✅ 1. Accept Prop
+const Review = ({
+                    cart,
+                    currencyCode
+                }: {
+    cart: any,
+    currencyCode: string
+}) => {
     const paidByGiftcard =
         cart?.gift_cards && cart?.gift_cards?.length > 0 && cart?.total === 0
 
-    // ✅ Aquí asumimos MAJOR units (porque tus prices en DB están en MAJOR)
     const raw = cart?.totals
         ? {
             item_total: cart?.totals?.subtotal ?? cart?.subtotal ?? 0,
@@ -52,10 +58,12 @@ const Review = ({ cart }: { cart: any }) => {
     return (
         <div>
             <div className="w-full mb-6">
-                <CartItems cart={cart} />
+                {/* ✅ 2. Pass to Items List (Review items) */}
+                <CartItems cart={cart} currencyCode={currencyCode} />
             </div>
 
             <div className="w-full mb-6 border rounded-sm p-4">
+                {/* ✅ 3. Pass to Summary (Total Calculation) */}
                 <CartSummary
                     item_total={raw.item_total}
                     shipping_total={raw.shipping_total}
@@ -63,6 +71,10 @@ const Review = ({ cart }: { cart: any }) => {
                     currency_code={cart?.currency_code || "bob"}
                     tax={raw.tax_total}
                     discount_total={raw.discount_total}
+
+                    // The Overrides:
+                    cart={cart}
+                    activeCurrencyCode={currencyCode}
                 />
             </div>
 

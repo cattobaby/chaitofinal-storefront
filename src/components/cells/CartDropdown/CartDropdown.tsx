@@ -11,128 +11,155 @@ import { HttpTypes } from "@medusajs/types"
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useCartContext } from "@/components/providers"
+import { getCartItemPriceAmount } from "@/lib/helpers/get-cart-item-price"
 
 const getItemCount = (cart: HttpTypes.StoreCart | null) => {
-  return cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
+    return cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
 }
 
 export const CartDropdown = () => {
-  const { cart } = useCartContext()
-  const [open, setOpen] = useState(false)
+    const { cart } = useCartContext()
+    const [open, setOpen] = useState(false)
 
-  const previousItemCount = usePrevious(getItemCount(cart))
-  const cartItemsCount = (cart && getItemCount(cart)) || 0
-  const pathname = usePathname()
+    const previousItemCount = usePrevious(getItemCount(cart))
+    const cartItemsCount = (cart && getItemCount(cart)) || 0
+    const pathname = usePathname()
 
-  const validItems = filterValidCartItems(cart?.items)
-  const currency_code = cart?.currency_code || "bob"
+    const validItems = filterValidCartItems(cart?.items)
 
-  const itemsAmount = (cart as any)?.subtotal ?? (cart as any)?.item_subtotal ?? 0
-  const deliveryAmount = (cart as any)?.shipping_total ?? (cart as any)?.shipping_subtotal ?? 0
-  const taxAmount = (cart as any)?.tax_total ?? 0
-  const totalAmount = (cart as any)?.total ?? 0
+    // ✅ 1. Get Display Currency (Client-side Cookie)
+    const [displayCurrency, setDisplayCurrency] = useState(cart?.currency_code || "bob")
 
-  const total = convertToLocale({ amount: totalAmount, currency_code })
-  const delivery = convertToLocale({ amount: deliveryAmount, currency_code })
-  const tax = convertToLocale({ amount: taxAmount, currency_code })
-  const items = convertToLocale({ amount: itemsAmount, currency_code })
+    useEffect(() => {
+        // Basic cookie reader
+        if (typeof document !== 'undefined') {
+            const match = document.cookie.match(/chaito_currency=([^;]+)/)
+            if (match && match[1]) {
+                setDisplayCurrency(match[1])
+            }
+        }
+    }, [open]) // Re-check when dropdown opens
 
-  useEffect(() => {
-    if (open) {
-      const timeout = setTimeout(() => setOpen(false), 2000)
-      return () => clearTimeout(timeout)
+    // ✅ 2. Calculate Item Totals Manually
+    const calculateItemsTotal = () => {
+        if (!validItems) return 0
+        return validItems.reduce((acc, item) => {
+            const price = getCartItemPriceAmount(item, displayCurrency)
+            return acc + (price * item.quantity)
+        }, 0)
     }
-  }, [open])
 
-  useEffect(() => {
-    if (
-      previousItemCount !== undefined &&
-      cartItemsCount > previousItemCount &&
-      pathname.split("/")[2] !== "cart"
-    ) {
-      setOpen(true)
-    }
-  }, [cartItemsCount, previousItemCount, pathname])
+    const itemsAmount = calculateItemsTotal()
 
-  return (
-    <div
-      className="relative"
-      onMouseOver={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      <LocalizedClientLink
-        href="/cart"
-        className="relative block"
-        aria-label="Ir al carrito"
-      >
-        <CartIcon size={24} color="white" />
-        {Boolean(cartItemsCount) && (
-          <Badge className="absolute -top-2 -right-2 w-4 h-4 p-0 bg-green-400 text-brand-900 border-2 border-brand-700 flex items-center justify-center text-[10px]">
-            {cartItemsCount}
-          </Badge>
-        )}
-      </LocalizedClientLink>
+    // NOTE: Keeping shipping/tax as is (BOB) for now, as you requested custom logic later.
+    // To strictly display USDT, we sum our calculated items + raw delivery.
+    // Ideally, you would apply your conversion rate to deliveryAmount here.
+    const deliveryAmount = (cart as any)?.shipping_total ?? (cart as any)?.shipping_subtotal ?? 0
+    const taxAmount = (cart as any)?.tax_total ?? 0
+    const totalAmount = itemsAmount + deliveryAmount + taxAmount
 
-      <Dropdown show={open}>
-        <div className="lg:w-[460px] shadow-xl bg-white rounded-md border border-neutral-200">
-          <h3 className="uppercase heading-md border-b p-4 text-neutral-900">
-            Carrito
-          </h3>
+    const total = convertToLocale({ amount: totalAmount, currency_code: displayCurrency })
+    const delivery = convertToLocale({ amount: deliveryAmount, currency_code: displayCurrency })
+    const tax = convertToLocale({ amount: taxAmount, currency_code: displayCurrency })
+    const items = convertToLocale({ amount: itemsAmount, currency_code: displayCurrency })
 
-          <div className="p-4">
-            {Boolean(cartItemsCount) ? (
-              <div>
-                <div className="overflow-y-scroll max-h-[360px] no-scrollbar">
-                  {validItems.map((item) => (
-                    <CartDropdownItem
-                      key={`${item.product_id}-${item.variant_id}`}
-                      item={item}
-                      currency_code={currency_code}
-                    />
-                  ))}
+    useEffect(() => {
+        if (open) {
+            const timeout = setTimeout(() => setOpen(false), 2000)
+            return () => clearTimeout(timeout)
+        }
+    }, [open])
+
+    useEffect(() => {
+        if (
+            previousItemCount !== undefined &&
+            cartItemsCount > previousItemCount &&
+            pathname.split("/")[2] !== "cart"
+        ) {
+            setOpen(true)
+        }
+    }, [cartItemsCount, previousItemCount, pathname])
+
+    return (
+        <div
+            className="relative"
+            onMouseOver={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+        >
+            <LocalizedClientLink
+                href="/cart"
+                className="relative block"
+                aria-label="Ir al carrito"
+            >
+                <CartIcon size={24} color="white" />
+                {Boolean(cartItemsCount) && (
+                    <Badge className="absolute -top-2 -right-2 w-4 h-4 p-0 bg-green-400 text-brand-900 border-2 border-brand-700 flex items-center justify-center text-[10px]">
+                        {cartItemsCount}
+                    </Badge>
+                )}
+            </LocalizedClientLink>
+
+            <Dropdown show={open}>
+                <div className="lg:w-[460px] shadow-xl bg-white rounded-md border border-neutral-200">
+                    <h3 className="uppercase heading-md border-b p-4 text-neutral-900">
+                        Carrito
+                    </h3>
+
+                    <div className="p-4">
+                        {Boolean(cartItemsCount) ? (
+                            <div>
+                                <div className="overflow-y-scroll max-h-[360px] no-scrollbar">
+                                    {validItems.map((item) => (
+                                        <CartDropdownItem
+                                            key={`${item.product_id}-${item.variant_id}`}
+                                            item={item}
+                                            // ✅ Pass the Override Currency
+                                            currency_code={displayCurrency}
+                                        />
+                                    ))}
+                                </div>
+
+                                <div className="pt-4">
+                                    <div className="text-neutral-500 flex justify-between items-center">
+                                        Productos <p className="label-md text-neutral-900">{items}</p>
+                                    </div>
+                                    <div className="text-neutral-500 flex justify-between items-center">
+                                        Envío <p className="label-md text-neutral-900">{delivery}</p>
+                                    </div>
+                                    <div className="text-neutral-500 flex justify-between items-center">
+                                        Impuestos <p className="label-md text-neutral-900">{tax}</p>
+                                    </div>
+
+                                    <div className="text-neutral-900 flex justify-between items-center border-t mt-2 pt-2">
+                                        <span className="font-bold">Total</span>
+                                        <p className="label-xl text-brand-700">{total}</p>
+                                    </div>
+
+                                    <LocalizedClientLink href="/cart">
+                                        <Button className="w-full mt-4 py-3 bg-brand-700 hover:bg-brand-800 text-white font-bold transition-colors">
+                                            Ir al carrito
+                                        </Button>
+                                    </LocalizedClientLink>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="px-8 py-6">
+                                <h4 className="heading-md uppercase text-center text-neutral-900">
+                                    Tu carrito está vacío
+                                </h4>
+                                <p className="text-lg text-center py-4 text-neutral-500">
+                                    ¿Buscas inspiración?
+                                </p>
+                                <LocalizedClientLink href="/categories">
+                                    <Button className="w-full py-3 bg-brand-700 hover:bg-brand-800 text-white transition-colors">
+                                        Explorar productos
+                                    </Button>
+                                </LocalizedClientLink>
+                            </div>
+                        )}
+                    </div>
                 </div>
-
-                <div className="pt-4">
-                  <div className="text-neutral-500 flex justify-between items-center">
-                    Productos <p className="label-md text-neutral-900">{items}</p>
-                  </div>
-                  <div className="text-neutral-500 flex justify-between items-center">
-                    Envío <p className="label-md text-neutral-900">{delivery}</p>
-                  </div>
-                  <div className="text-neutral-500 flex justify-between items-center">
-                    Impuestos <p className="label-md text-neutral-900">{tax}</p>
-                  </div>
-
-                  <div className="text-neutral-900 flex justify-between items-center border-t mt-2 pt-2">
-                    <span className="font-bold">Total</span>
-                    <p className="label-xl text-brand-700">{total}</p>
-                  </div>
-
-                  <LocalizedClientLink href="/cart">
-                    <Button className="w-full mt-4 py-3 bg-brand-700 hover:bg-brand-800 text-white font-bold transition-colors">
-                      Ir al carrito
-                    </Button>
-                  </LocalizedClientLink>
-                </div>
-              </div>
-            ) : (
-              <div className="px-8 py-6">
-                <h4 className="heading-md uppercase text-center text-neutral-900">
-                  Tu carrito está vacío
-                </h4>
-                <p className="text-lg text-center py-4 text-neutral-500">
-                  ¿Buscas inspiración?
-                </p>
-                <LocalizedClientLink href="/categories">
-                  <Button className="w-full py-3 bg-brand-700 hover:bg-brand-800 text-white transition-colors">
-                    Explorar productos
-                  </Button>
-                </LocalizedClientLink>
-              </div>
-            )}
-          </div>
+            </Dropdown>
         </div>
-      </Dropdown>
-    </div>
-  )
+    )
 }
