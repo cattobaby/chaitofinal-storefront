@@ -32,30 +32,6 @@ type SupportMessage = {
     created_at?: string
 }
 
-// ---- Helper fetch (CORS + cookies + PK) ----
-async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}`, {
-        credentials: "include",
-        headers: {
-            "Content-Type": "application/json",
-            ...(PK ? { "x-publishable-api-key": PK } : {}),
-            ...(init?.headers || {}),
-        },
-        ...init,
-    })
-    if (!res.ok) {
-        let msg = `Error ${res.status}`
-        try {
-            const data = await res.json()
-            msg = (data as any)?.message || msg
-        } catch {
-            // noop
-        }
-        throw new Error(msg)
-    }
-    return res.json() as Promise<T>
-}
-
 function formatDate(iso?: string | null) {
     if (!iso) return ""
     try {
@@ -65,7 +41,36 @@ function formatDate(iso?: string | null) {
     }
 }
 
-export const UserMessagesSection = () => {
+// ✅ Accept token as prop
+export const UserMessagesSection = ({ token }: { token: string | null }) => {
+
+    // ---- Helper fetch (CORS + cookies + PK + Bearer Token) ----
+    // Defined inside component to access 'token' prop
+    async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
+        const res = await fetch(`${API_BASE}${path}`, {
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+                ...(PK ? { "x-publishable-api-key": PK } : {}),
+                // ✅ Inject Token if available
+                ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+                ...(init?.headers || {}),
+            },
+            ...init,
+        })
+        if (!res.ok) {
+            let msg = `Error ${res.status}`
+            try {
+                const data = await res.json()
+                msg = (data as any)?.message || msg
+            } catch {
+                // noop
+            }
+            throw new Error(msg)
+        }
+        return res.json() as Promise<T>
+    }
+
     // Estado básico
     const [threads, setThreads] = useState<SupportThread[]>([])
     const [threadsCount, setThreadsCount] = useState(0)
@@ -90,8 +95,11 @@ export const UserMessagesSection = () => {
 
     const scrollRef = useRef<HTMLDivElement>(null)
 
-    // Cargar hilos del cliente (autenticado por cookie)
+    // Cargar hilos del cliente
     const loadThreads = async () => {
+        // If we don't have a token yet (hydration), wait or fail gracefully
+        if (!token) return
+
         setLoadingThreads(true)
         setThreadsErr(null)
         try {
@@ -115,10 +123,10 @@ export const UserMessagesSection = () => {
         const t = setInterval(loadThreads, 5000)
         return () => clearInterval(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [token]) // ✅ React to token availability
 
     const loadMessages = async (id: string) => {
-        if (!id) return
+        if (!id || !token) return
         setLoadingMsgs(true)
         setMsgsErr(null)
         try {
@@ -142,10 +150,10 @@ export const UserMessagesSection = () => {
         const t = setInterval(() => loadMessages(selectedId), 3000)
         return () => clearInterval(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedId])
+    }, [selectedId, token])
 
     const sendMessage = async () => {
-        if (!selectedId || !draft.trim()) return
+        if (!selectedId || !draft.trim() || !token) return
         setSending(true)
         setSendErr(null)
         try {
@@ -166,6 +174,10 @@ export const UserMessagesSection = () => {
     const createThread = async () => {
         if (!firstMsg.trim()) {
             setCreateErr("Escribe el primer mensaje.")
+            return
+        }
+        if (!token) {
+            setCreateErr("No estás autenticado.")
             return
         }
         setCreating(true)
