@@ -196,9 +196,9 @@ export const FloatingChatWidget = ({ token }: Props) => {
                     <div className="bg-purple-600 text-white p-4 flex justify-between items-center shadow-sm">
                         <div>
                             <h3 className="font-bold text-sm">
-                                {activeThread ? `Support #${activeThread.id.slice(-4)}` : "Help Center"}
+                                {activeThread ? `Ticket #${activeThread.id.slice(-4)}` : "Centro de Ayuda"}
                             </h3>
-                            {isChatClosed && <span className="text-[10px] bg-red-500/20 px-1 rounded ml-1">Closed</span>}
+                            {isChatClosed && <span className="text-[10px] bg-red-500/20 px-1 rounded ml-1">Cerrado</span>}
                         </div>
                         <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">✕</button>
                     </div>
@@ -214,20 +214,20 @@ export const FloatingChatWidget = ({ token }: Props) => {
 
                                 {/* Order ID Field (Kept as requested) */}
                                 <div>
-                                    <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Order ID (Optional)</label>
+                                    <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">ID de Pedido</label>
                                     <input
                                         className="w-full p-2.5 mt-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-all"
-                                        placeholder="Order ID..."
+                                        placeholder="ej. ord_..."
                                         value={orderId}
                                         onChange={e => setOrderId(e.target.value)}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Message</label>
+                                    <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Tu Mensaje</label>
                                     <textarea
                                         className="w-full p-2.5 mt-1 border border-gray-200 rounded-lg text-sm min-h-[100px] focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-all resize-none"
-                                        placeholder="Describe your issue..."
+                                        placeholder="Describe tu problema..."
                                         required
                                         value={initialMsg}
                                         onChange={e => setInitialMsg(e.target.value)}
@@ -235,13 +235,13 @@ export const FloatingChatWidget = ({ token }: Props) => {
                                 </div>
 
                                 <button disabled={loading} className="w-full bg-purple-600 text-white py-3 rounded-lg text-sm font-bold hover:bg-purple-700 disabled:opacity-50 transition-colors">
-                                    {loading ? "Starting..." : "Start Chat"}
+                                    {loading ? "Iniciando..." : "Iniciar Chat"}
                                 </button>
                             </form>
                         ) : (
                             /* State: Active Chat */
                             <div className="space-y-3">
-                                <p className="text-center text-[10px] text-gray-400 my-2">-- Start of conversation --</p>
+                                <p className="text-center text-[10px] text-gray-400 my-2">-- Inicio del chat --</p>
                                 {messages.map((m) => {
                                     const isMe = m.author_type === 'customer'
                                     return (
@@ -256,12 +256,12 @@ export const FloatingChatWidget = ({ token }: Props) => {
                                         </div>
                                     )
                                 })}
-                                {messages.length === 0 && <p className="text-center text-xs text-gray-400">Request sent. Waiting for agent...</p>}
+                                {messages.length === 0 && <p className="text-center text-xs text-gray-400">Solicitud enviada. Esperando respuesta del agente...</p>}
 
                                 {isChatClosed && (
                                     <div className="flex justify-center mt-4">
                                         <span className="text-xs bg-gray-200 text-gray-600 px-3 py-1 rounded-full">
-                                            Conversation closed by admin
+                                            Conversación cerrada por un administrador
                                         </span>
                                     </div>
                                 )}
@@ -274,7 +274,7 @@ export const FloatingChatWidget = ({ token }: Props) => {
                         <form onSubmit={handleReply} className="p-3 bg-white border-t border-gray-100 flex gap-2">
                             <input
                                 className="flex-1 bg-gray-50 border-0 rounded-full px-4 py-2.5 text-sm focus:ring-1 focus:ring-purple-100 focus:bg-white transition-all outline-none"
-                                placeholder="Type a message..."
+                                placeholder="Escribe un mensaje..."
                                 value={replyMsg}
                                 onChange={e => setReplyMsg(e.target.value)}
                                 disabled={loading}
@@ -288,12 +288,12 @@ export const FloatingChatWidget = ({ token }: Props) => {
                     {/* Closed State Footer */}
                     {activeThread && isChatClosed && (
                         <div className="p-4 bg-gray-50 border-t border-gray-200 text-center">
-                            <p className="text-sm text-gray-600 mb-2">This conversation has been closed.</p>
+                            <p className="text-sm text-gray-600 mb-2">Esta conversación ha sido cerrada.</p>
                             <button
                                 onClick={() => window.location.reload()}
                                 className="text-xs text-purple-600 font-medium hover:underline"
                             >
-                                Refresh page to start a new chat
+                                Recarga la página para iniciar un nuevo chat
                             </button>
                         </div>
                     )}
@@ -309,7 +309,7 @@ export const FloatingChatWidget = ({ token }: Props) => {
 
                 {/* Tooltip */}
                 <div className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-3 whitespace-nowrap rounded-md bg-black/80 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                    {isOpen ? "Close" : "Help"}
+                    {isOpen ? "Cerrar" : "Ayuda"}
                 </div>
             </button>
         </div>
