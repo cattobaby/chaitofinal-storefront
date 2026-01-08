@@ -1,11 +1,9 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import { MessageIcon } from "@/icons"
-import { useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { usePathname } from "next/navigation"
 
-// Environment variables
 const API_BASE = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
 const PK = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
@@ -13,17 +11,17 @@ type Props = {
     token: string | null
 }
 
-export const FloatingMessageButton = ({ token }: Props) => {
-    const pathname = usePathname()
+export const FloatingChatWidget = ({ token }: Props) => {
     const [mounted, setMounted] = useState(false)
     const [isOpen, setIsOpen] = useState(false)
 
-    // Chat Logic State
+    // Chat State
     const [activeThread, setActiveThread] = useState<any | null>(null)
     const [messages, setMessages] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
+    const [isChatClosed, setIsChatClosed] = useState(false)
 
-    // Input State
+    // Input states
     const [initialMsg, setInitialMsg] = useState("")
     const [replyMsg, setReplyMsg] = useState("")
     const [orderId, setOrderId] = useState("")
@@ -35,10 +33,11 @@ export const FloatingMessageButton = ({ token }: Props) => {
         setMounted(true)
     }, [])
 
-    // 2. Poll for active thread and messages when open
+    // 2. Poll for active thread status
     const checkActiveThread = async () => {
         if (!token) return
         try {
+            // We only fetch "open" threads
             const res = await fetch(`${API_BASE}/store/support?status=open&limit=1`, {
                 headers: {
                     "Content-Type": "application/json",
@@ -47,11 +46,28 @@ export const FloatingMessageButton = ({ token }: Props) => {
                 }
             })
             const data = await res.json()
+
             if (data.threads?.[0]) {
-                setActiveThread(data.threads[0])
-                loadMessages(data.threads[0].id)
+                // Thread found and open
+                const thread = data.threads[0]
+                setActiveThread(thread)
+                setIsChatClosed(false)
+
+                // If we just loaded it, fetch messages immediately
+                if (!activeThread) {
+                    loadMessages(thread.id)
+                }
             } else {
-                setActiveThread(null)
+                // No open thread found.
+                if (activeThread) {
+                    // CASE: We HAD a thread, but now it's gone from the "open" list.
+                    // This means the admin closed it.
+                    setIsChatClosed(true)
+                } else {
+                    // CASE: Clean slate (or page refresh), show create form.
+                    setActiveThread(null)
+                    setIsChatClosed(false)
+                }
             }
         } catch (e) {
             console.error("Error checking threads:", e)
@@ -67,31 +83,47 @@ export const FloatingMessageButton = ({ token }: Props) => {
                     "Authorization": `Bearer ${token}`
                 }
             })
+            // If 404, it might mean permissions lost or hard deleted, treat as closed
+            if (res.status === 404) {
+                setIsChatClosed(true)
+                return
+            }
+
             const data = await res.json()
             setMessages(data.messages || [])
-            setTimeout(() => {
-                scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
-            }, 100)
+
+            // Only auto-scroll if we are at the bottom or loading for first time (simple heuristic)
+            if (scrollRef.current) {
+                const div = scrollRef.current
+                const isAtBottom = div.scrollHeight - div.scrollTop <= div.clientHeight + 100
+                if (isAtBottom || messages.length === 0) {
+                    setTimeout(() => div.scrollTo({ top: div.scrollHeight, behavior: "smooth" }), 100)
+                }
+            }
         } catch (e) {
-            console.error("Error loading messages:", e)
+            console.error(e)
         }
     }
 
+    // Polling Effect
     useEffect(() => {
         if (token) checkActiveThread()
 
         const t = setInterval(() => {
-            if (isOpen && activeThread) {
-                loadMessages(activeThread.id)
-            } else if (isOpen && !activeThread) {
+            if (isOpen) {
+                // 1. Check if status changed (e.g. admin closed it)
                 checkActiveThread()
+
+                // 2. Load new messages if we have a thread context
+                if (activeThread) {
+                    loadMessages(activeThread.id)
+                }
             }
         }, 5000)
 
         return () => clearInterval(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, isOpen, activeThread?.id])
-
 
     // 3. Handlers
     const handleCreate = async (e: React.FormEvent) => {
@@ -111,11 +143,15 @@ export const FloatingMessageButton = ({ token }: Props) => {
 
             if (data.thread) {
                 setActiveThread(data.thread)
-                loadMessages(data.thread.id)
                 setInitialMsg("")
                 setOrderId("")
+                loadMessages(data.thread.id)
+            } else if (data.is_existing) {
+                // If api returns existing thread logic
+                setActiveThread(data.thread)
+                loadMessages(data.thread.id)
             }
-        } catch (e) {
+        } catch(e) {
             console.error(e)
         } finally {
             setLoading(false)
@@ -124,10 +160,10 @@ export const FloatingMessageButton = ({ token }: Props) => {
 
     const handleReply = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!activeThread || !replyMsg.trim()) return
+        if(!activeThread || !replyMsg.trim()) return
         setLoading(true)
         try {
-            await fetch(`${API_BASE}/store/support/${activeThread.id}/messages`, {
+            const res = await fetch(`${API_BASE}/store/support/${activeThread.id}/messages`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -136,45 +172,37 @@ export const FloatingMessageButton = ({ token }: Props) => {
                 },
                 body: JSON.stringify({ body: replyMsg })
             })
-            setReplyMsg("")
-            loadMessages(activeThread.id)
-        } catch (e) {
-            console.error(e)
-        } finally {
-            setLoading(false)
-        }
+
+            if (res.ok) {
+                setReplyMsg("")
+                loadMessages(activeThread.id)
+            } else {
+                // If error, maybe it was closed just now
+                checkActiveThread()
+            }
+        } catch(e) { console.error(e) }
+        finally { setLoading(false) }
     }
 
-    // 4. Render Logic
     if (!mounted || !token) return null
 
     const node = (
         <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2 pointer-events-auto font-sans">
-
-            {/* --- The Chat Window (Pop-up) --- */}
+            {/* Chat Window */}
             {isOpen && (
                 <div className="w-[350px] h-[500px] bg-white border border-gray-200 shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 mb-2">
-                    {/* Header (Green) */}
-                    <div className="bg-green-700 text-white p-4 flex justify-between items-center shadow-sm">
+
+                    {/* Header: Purple */}
+                    <div className="bg-purple-600 text-white p-4 flex justify-between items-center shadow-sm">
                         <div>
                             <h3 className="font-bold text-sm">
-                                {activeThread ? "Soporte Activo" : "Centro de Ayuda"}
+                                {activeThread ? `Support #${activeThread.id.slice(-4)}` : "Help Center"}
                             </h3>
-                            {activeThread && (
-                                <span className="text-[10px] text-green-100">
-                                    Ticket #{activeThread.id.slice(-4)}
-                                </span>
-                            )}
+                            {isChatClosed && <span className="text-[10px] bg-red-500/20 px-1 rounded ml-1">Closed</span>}
                         </div>
-                        <button
-                            onClick={() => setIsOpen(false)}
-                            className="text-white/80 hover:text-white transition-colors"
-                        >
-                            ✕
-                        </button>
+                        <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors">✕</button>
                     </div>
 
-                    {/* Content Area */}
                     <div className="flex-1 bg-gray-50 overflow-y-auto p-4" ref={scrollRef}>
                         {!activeThread ? (
                             /* State: Create Form */
@@ -184,45 +212,43 @@ export const FloatingMessageButton = ({ token }: Props) => {
                                     <p className="text-xs text-gray-500">¿En qué podemos ayudarte hoy?</p>
                                 </div>
 
+                                {/* Order ID Field (Kept as requested) */}
                                 <div>
-                                    <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">ID de Pedido (Opcional)</label>
+                                    <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Order ID (Optional)</label>
                                     <input
-                                        className="w-full p-2.5 mt-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-700 focus:border-transparent outline-none transition-all"
-                                        placeholder="ej. ord_..."
+                                        className="w-full p-2.5 mt-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-all"
+                                        placeholder="Order ID..."
                                         value={orderId}
                                         onChange={e => setOrderId(e.target.value)}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Tu Mensaje</label>
+                                    <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Message</label>
                                     <textarea
-                                        className="w-full p-2.5 mt-1 border border-gray-200 rounded-lg text-sm min-h-[100px] focus:ring-2 focus:ring-green-700 focus:border-transparent outline-none transition-all resize-none"
-                                        placeholder="Describe tu problema..."
+                                        className="w-full p-2.5 mt-1 border border-gray-200 rounded-lg text-sm min-h-[100px] focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-all resize-none"
+                                        placeholder="Describe your issue..."
                                         required
                                         value={initialMsg}
                                         onChange={e => setInitialMsg(e.target.value)}
                                     />
                                 </div>
 
-                                <button
-                                    disabled={loading || !initialMsg.trim()}
-                                    className="w-full bg-green-700 text-white py-3 rounded-lg text-sm font-bold hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                >
-                                    {loading ? "Iniciando..." : "Iniciar Chat"}
+                                <button disabled={loading} className="w-full bg-purple-600 text-white py-3 rounded-lg text-sm font-bold hover:bg-purple-700 disabled:opacity-50 transition-colors">
+                                    {loading ? "Starting..." : "Start Chat"}
                                 </button>
                             </form>
                         ) : (
                             /* State: Active Chat */
                             <div className="space-y-3">
-                                <p className="text-center text-[10px] text-gray-400 my-2">-- Inicio del chat --</p>
+                                <p className="text-center text-[10px] text-gray-400 my-2">-- Start of conversation --</p>
                                 {messages.map((m) => {
                                     const isMe = m.author_type === 'customer'
                                     return (
                                         <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
                                                 isMe
-                                                    ? 'bg-green-700 text-white rounded-br-sm'
+                                                    ? 'bg-purple-600 text-white rounded-br-sm'
                                                     : 'bg-white border border-gray-100 text-gray-800 rounded-bl-sm'
                                             }`}>
                                                 {m.body}
@@ -230,53 +256,60 @@ export const FloatingMessageButton = ({ token }: Props) => {
                                         </div>
                                     )
                                 })}
-                                {messages.length === 0 && (
-                                    <div className="flex h-full items-center justify-center">
-                                        <p className="text-xs text-gray-400">Esperando respuesta del agente...</p>
+                                {messages.length === 0 && <p className="text-center text-xs text-gray-400">Request sent. Waiting for agent...</p>}
+
+                                {isChatClosed && (
+                                    <div className="flex justify-center mt-4">
+                                        <span className="text-xs bg-gray-200 text-gray-600 px-3 py-1 rounded-full">
+                                            Conversation closed by admin
+                                        </span>
                                     </div>
                                 )}
                             </div>
                         )}
                     </div>
 
-                    {/* Reply Input (Only if active) */}
-                    {activeThread && (
+                    {/* Reply Input (Only if active AND open) */}
+                    {activeThread && !isChatClosed && (
                         <form onSubmit={handleReply} className="p-3 bg-white border-t border-gray-100 flex gap-2">
                             <input
-                                className="flex-1 bg-gray-50 border-0 rounded-full px-4 py-2.5 text-sm focus:ring-1 focus:ring-green-100 focus:bg-white transition-all outline-none"
-                                placeholder="Escribe un mensaje..."
+                                className="flex-1 bg-gray-50 border-0 rounded-full px-4 py-2.5 text-sm focus:ring-1 focus:ring-purple-100 focus:bg-white transition-all outline-none"
+                                placeholder="Type a message..."
                                 value={replyMsg}
                                 onChange={e => setReplyMsg(e.target.value)}
                                 disabled={loading}
                             />
-                            <button
-                                disabled={!replyMsg.trim() || loading}
-                                className="w-10 h-10 rounded-full bg-green-700 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:scale-100"
-                            >
+                            <button disabled={!replyMsg.trim() || loading} className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:scale-100">
                                 ➤
                             </button>
                         </form>
                     )}
+
+                    {/* Closed State Footer */}
+                    {activeThread && isChatClosed && (
+                        <div className="p-4 bg-gray-50 border-t border-gray-200 text-center">
+                            <p className="text-sm text-gray-600 mb-2">This conversation has been closed.</p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="text-xs text-purple-600 font-medium hover:underline"
+                            >
+                                Refresh page to start a new chat
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* --- FAB Button (Green) --- */}
+            {/* FAB Button: Purple */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-green-700 shadow-lg transition-transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500"
-                aria-label="Abrir chat de soporte"
+                className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-purple-600 shadow-lg transition-transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-400"
             >
-                {isOpen ? (
-                    <span className="text-white text-xl font-bold">✕</span>
-                ) : (
-                    <>
-                        <MessageIcon color="white" size={24} />
-                    </>
-                )}
+                {isOpen ? "✕" : <MessageIcon color="white" size={24} />}
 
-                {/* Hover Tooltip */}
+                {/* Tooltip */}
                 <div className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-3 whitespace-nowrap rounded-md bg-black/80 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                    {isOpen ? "Cerrar" : "Ayuda"}
+                    {isOpen ? "Close" : "Help"}
                 </div>
             </button>
         </div>

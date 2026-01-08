@@ -7,6 +7,8 @@ import { Toaster } from "@medusajs/ui"
 import { retrieveCart } from "@/lib/data/cart"
 import { Providers } from "./providers"
 import { FloatingMessageButton } from "@/components/molecules/FloatingMessageButton/FloatingMessageButton"
+// 1. Import the helper to get headers
+import { getAuthHeaders } from "@/lib/data/cookies"
 
 const montserrat = Montserrat({
     variable: "--font-montserrat",
@@ -38,8 +40,14 @@ export default async function RootLayout({
 }) {
     const cart = await retrieveCart()
 
+    // 2. Retrieve the Token
+    const authHeaders = (await getAuthHeaders()) as { authorization?: string } | null
+    const token = authHeaders?.authorization?.split(" ")[1] || null
+
     const ALGOLIA_APP = process.env.NEXT_PUBLIC_ALGOLIA_ID
-    const htmlLang = params?.locale || "es"
+    // await params is required in newer Next.js versions for layout
+    const resolvedParams = await params
+    const htmlLang = resolvedParams?.locale || "es"
 
     return (
         <html lang={htmlLang} className="">
@@ -87,8 +95,8 @@ export default async function RootLayout({
         <Providers cart={cart}>
             {children}
 
-            {/* ✅ Global en toda la app */}
-            <FloatingMessageButton />
+            {/* 3. Pass the token! */}
+            <FloatingMessageButton token={token} />
         </Providers>
 
         <Toaster position="top-right" />

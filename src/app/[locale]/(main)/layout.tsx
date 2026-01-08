@@ -3,9 +3,10 @@ import { Footer } from "@/components/organisms"
 import { HeaderServer } from "@/components/organisms/Header/Header.server"
 import { retrieveCustomer } from "@/lib/data/customer"
 import { checkRegion } from "@/lib/helpers/check-region"
-import { Session } from "@talkjs/react"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
+import { FloatingChatWidget } from "@/components/molecules/FloatingChatWidget/FloatingChatWidget"
+import { getAuthHeaders } from "@/lib/data/cookies"
 
 export default async function RootLayout({
                                              children,
@@ -14,7 +15,6 @@ export default async function RootLayout({
     children: React.ReactNode
     params: Promise<{ locale: string }>
 }>) {
-    const APP_ID = process.env.NEXT_PUBLIC_TALKJS_APP_ID
     const { locale } = await params
 
     // ✅ read cookies safely at the layout (server component)
@@ -27,22 +27,17 @@ export default async function RootLayout({
         return redirect("/")
     }
 
-    if (!APP_ID || !user)
-        return (
-            <>
-                <HeaderServer cookieHeader={cookieHeader} />
-                {children}
-                <Footer />
-            </>
-        )
+    // Get Auth Token for the widget
+    const authHeaders = (await getAuthHeaders()) as { authorization?: string } | null
+    const token = authHeaders?.authorization?.split(" ")[1] || null
 
     return (
         <>
-            <Session appId={APP_ID} userId={user.id}>
-                <HeaderServer cookieHeader={cookieHeader} />
-                {children}
-                <Footer />
-            </Session>
+            <HeaderServer cookieHeader={cookieHeader} />
+            {children}
+            <Footer />
+            {/* Inject Custom Chat Widget */}
+            <FloatingChatWidget token={token} />
         </>
     )
 }
