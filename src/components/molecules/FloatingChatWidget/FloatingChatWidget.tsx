@@ -28,43 +28,47 @@ export const FloatingChatWidget = ({ token }: Props) => {
 
     const scrollRef = useRef<HTMLDivElement>(null)
 
-    // 1. Mount check for Portal
+    // Usamos ref solo para el auto-scroll, no para notificaciones
+    const lastMsgCountRef = useRef<number>(-1)
+
     useEffect(() => {
         setMounted(true)
     }, [])
 
-    // 2. Poll for active thread status
+    // --- Auto-scroll effect ---
+    useEffect(() => {
+        if (isOpen && scrollRef.current) {
+            setTimeout(() => {
+                scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
+            }, 100)
+        }
+    }, [isOpen])
+
+    // --- Polling Logic ---
     const checkActiveThread = async () => {
-        if (!token) return
         try {
-            // We only fetch "open" threads
             const res = await fetch(`${API_BASE}/store/support?status=open&limit=1`, {
                 headers: {
                     "Content-Type": "application/json",
                     "x-publishable-api-key": PK!,
-                    "Authorization": `Bearer ${token}`
-                }
+                    "Authorization": token ? `Bearer ${token}` : ""
+                },
+                credentials: "include"
             })
             const data = await res.json()
 
             if (data.threads?.[0]) {
-                // Thread found and open
                 const thread = data.threads[0]
                 setActiveThread(thread)
                 setIsChatClosed(false)
 
-                // If we just loaded it, fetch messages immediately
                 if (!activeThread) {
                     loadMessages(thread.id)
                 }
             } else {
-                // No open thread found.
                 if (activeThread) {
-                    // CASE: We HAD a thread, but now it's gone from the "open" list.
-                    // This means the admin closed it.
                     setIsChatClosed(true)
                 } else {
-                    // CASE: Clean slate (or page refresh), show create form.
                     setActiveThread(null)
                     setIsChatClosed(false)
                 }
@@ -80,23 +84,28 @@ export const FloatingChatWidget = ({ token }: Props) => {
                 headers: {
                     "Content-Type": "application/json",
                     "x-publishable-api-key": PK!,
-                    "Authorization": `Bearer ${token}`
-                }
+                    "Authorization": token ? `Bearer ${token}` : ""
+                },
+                credentials: "include"
             })
-            // If 404, it might mean permissions lost or hard deleted, treat as closed
+
             if (res.status === 404) {
                 setIsChatClosed(true)
                 return
             }
 
             const data = await res.json()
-            setMessages(data.messages || [])
+            const newMessages = data.messages || []
 
-            // Only auto-scroll if we are at the bottom or loading for first time (simple heuristic)
-            if (scrollRef.current) {
+            // Actualizamos mensajes y ref
+            lastMsgCountRef.current = newMessages.length
+            setMessages(newMessages)
+
+            // Auto-scroll logic simple
+            if (isOpen && scrollRef.current) {
                 const div = scrollRef.current
-                const isAtBottom = div.scrollHeight - div.scrollTop <= div.clientHeight + 100
-                if (isAtBottom || messages.length === 0) {
+                const isAtBottom = div.scrollHeight - div.scrollTop <= div.clientHeight + 150
+                if (isAtBottom) {
                     setTimeout(() => div.scrollTo({ top: div.scrollHeight, behavior: "smooth" }), 100)
                 }
             }
@@ -105,19 +114,15 @@ export const FloatingChatWidget = ({ token }: Props) => {
         }
     }
 
-    // Polling Effect
     useEffect(() => {
-        if (token) checkActiveThread()
+        checkActiveThread()
 
         const t = setInterval(() => {
-            if (isOpen) {
-                // 1. Check if status changed (e.g. admin closed it)
+            if (activeThread) {
+                loadMessages(activeThread.id)
                 checkActiveThread()
-
-                // 2. Load new messages if we have a thread context
-                if (activeThread) {
-                    loadMessages(activeThread.id)
-                }
+            } else {
+                checkActiveThread()
             }
         }, 5000)
 
@@ -125,7 +130,7 @@ export const FloatingChatWidget = ({ token }: Props) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, isOpen, activeThread?.id])
 
-    // 3. Handlers
+    // --- Handlers ---
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
@@ -135,8 +140,9 @@ export const FloatingChatWidget = ({ token }: Props) => {
                 headers: {
                     "Content-Type": "application/json",
                     "x-publishable-api-key": PK!,
-                    "Authorization": `Bearer ${token}`
+                    "Authorization": token ? `Bearer ${token}` : ""
                 },
+                credentials: "include",
                 body: JSON.stringify({ body: initialMsg, order_id: orderId || undefined })
             })
             const data = await res.json()
@@ -147,7 +153,6 @@ export const FloatingChatWidget = ({ token }: Props) => {
                 setOrderId("")
                 loadMessages(data.thread.id)
             } else if (data.is_existing) {
-                // If api returns existing thread logic
                 setActiveThread(data.thread)
                 loadMessages(data.thread.id)
             }
@@ -168,8 +173,9 @@ export const FloatingChatWidget = ({ token }: Props) => {
                 headers: {
                     "Content-Type": "application/json",
                     "x-publishable-api-key": PK!,
-                    "Authorization": `Bearer ${token}`
+                    "Authorization": token ? `Bearer ${token}` : ""
                 },
+                credentials: "include",
                 body: JSON.stringify({ body: replyMsg })
             })
 
@@ -177,14 +183,13 @@ export const FloatingChatWidget = ({ token }: Props) => {
                 setReplyMsg("")
                 loadMessages(activeThread.id)
             } else {
-                // If error, maybe it was closed just now
                 checkActiveThread()
             }
         } catch(e) { console.error(e) }
         finally { setLoading(false) }
     }
 
-    if (!mounted || !token) return null
+    if (!mounted) return null
 
     const node = (
         <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2 pointer-events-auto font-sans">
@@ -205,14 +210,11 @@ export const FloatingChatWidget = ({ token }: Props) => {
 
                     <div className="flex-1 bg-gray-50 overflow-y-auto p-4" ref={scrollRef}>
                         {!activeThread ? (
-                            /* State: Create Form */
                             <form onSubmit={handleCreate} className="space-y-4">
                                 <div className="text-center mb-6">
                                     <p className="text-sm font-medium text-gray-900">Hola 👋</p>
                                     <p className="text-xs text-gray-500">¿En qué podemos ayudarte hoy?</p>
                                 </div>
-
-                                {/* Order ID Field (Kept as requested) */}
                                 <div>
                                     <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">ID de Pedido</label>
                                     <input
@@ -222,7 +224,6 @@ export const FloatingChatWidget = ({ token }: Props) => {
                                         onChange={e => setOrderId(e.target.value)}
                                     />
                                 </div>
-
                                 <div>
                                     <label className="text-[10px] uppercase text-gray-500 font-bold tracking-wider">Tu Mensaje</label>
                                     <textarea
@@ -233,13 +234,11 @@ export const FloatingChatWidget = ({ token }: Props) => {
                                         onChange={e => setInitialMsg(e.target.value)}
                                     />
                                 </div>
-
                                 <button disabled={loading} className="w-full bg-purple-600 text-white py-3 rounded-lg text-sm font-bold hover:bg-purple-700 disabled:opacity-50 transition-colors">
                                     {loading ? "Iniciando..." : "Iniciar Chat"}
                                 </button>
                             </form>
                         ) : (
-                            /* State: Active Chat */
                             <div className="space-y-3">
                                 <p className="text-center text-[10px] text-gray-400 my-2">-- Inicio del chat --</p>
                                 {messages.map((m) => {
@@ -269,7 +268,6 @@ export const FloatingChatWidget = ({ token }: Props) => {
                         )}
                     </div>
 
-                    {/* Reply Input (Only if active AND open) */}
                     {activeThread && !isChatClosed && (
                         <form onSubmit={handleReply} className="p-3 bg-white border-t border-gray-100 flex gap-2">
                             <input
@@ -285,7 +283,6 @@ export const FloatingChatWidget = ({ token }: Props) => {
                         </form>
                     )}
 
-                    {/* Closed State Footer */}
                     {activeThread && isChatClosed && (
                         <div className="p-4 bg-gray-50 border-t border-gray-200 text-center">
                             <p className="text-sm text-gray-600 mb-2">Esta conversación ha sido cerrada.</p>
@@ -300,14 +297,13 @@ export const FloatingChatWidget = ({ token }: Props) => {
                 </div>
             )}
 
-            {/* FAB Button: Purple */}
+            {/* FAB Button: Purple (SIN BADGE) */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-purple-600 shadow-lg transition-transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-400"
             >
                 {isOpen ? "✕" : <MessageIcon color="white" size={24} />}
 
-                {/* Tooltip */}
                 <div className="pointer-events-none absolute right-full top-1/2 -translate-y-1/2 mr-3 whitespace-nowrap rounded-md bg-black/80 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
                     {isOpen ? "Cerrar" : "Ayuda"}
                 </div>
