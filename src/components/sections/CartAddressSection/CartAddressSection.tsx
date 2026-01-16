@@ -20,6 +20,11 @@ export const CartAddressSection = ({
     cart: HttpTypes.StoreCart | null
     customer: HttpTypes.StoreCustomer | null
 }) => {
+  console.log("🎨 DEBUG UI REGION:", {
+    regionId: cart?.region_id,
+    hasRegionObj: !!cart?.region,
+    countries: cart?.region?.countries
+  })
     const searchParams = useSearchParams()
     const router = useRouter()
     const pathname = usePathname()

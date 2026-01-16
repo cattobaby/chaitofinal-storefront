@@ -88,6 +88,7 @@ export async function retrieveCart(cartId?: string) {
           "+items.total",
 
           "*region",
+          "*region.countries",
 
           "*shipping_address",
           "*billing_address",
@@ -123,6 +124,9 @@ export async function retrieveCart(cartId?: string) {
             provider_id: s.provider_id,
             status: s.status,
             hasData: !!s.data,
+            regionId: cart?.region?.id,
+            countriesLength: cart?.region?.countries?.length,
+            countriesRaw: cart?.region?.countries,
           }))
         )
       }
@@ -375,6 +379,7 @@ export async function setShippingMethod(
           "*items.metadata",
           "+items.total",
           "*region",
+          "*region.countries",
           "*shipping_address",
           "*billing_address",
           "*promotions",
