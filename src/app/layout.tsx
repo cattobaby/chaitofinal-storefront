@@ -31,21 +31,24 @@ export const metadata: Metadata = {
     },
 }
 
+// ✅ Fix: Definir params como Promise (Next.js 15)
 export default async function RootLayout({
                                              children,
                                              params,
                                          }: {
     children: React.ReactNode
-    params?: { locale?: string }
+    params?: Promise<{ locale?: string }>
 }) {
     const cart = await retrieveCart()
 
     // 2. Retrieve the Token
+    // ✅ Fix: Casting forzado para evitar error de TypeScript "Property does not exist on type '{}'"
     const authHeaders = (await getAuthHeaders()) as { authorization?: string } | null
     const token = authHeaders?.authorization?.split(" ")[1] || null
 
     const ALGOLIA_APP = process.env.NEXT_PUBLIC_ALGOLIA_ID
-    // await params is required in newer Next.js versions for layout
+
+    // ✅ Fix: await params antes de usarlo
     const resolvedParams = await params
     const htmlLang = resolvedParams?.locale || "es"
 
