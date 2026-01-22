@@ -24,7 +24,8 @@ export default async function RootLayout({
     return redirect("/")
   }
 
-  const authHeaders = (await getAuthHeaders())
+  // FIX: Type assertion explicitly added here
+  const authHeaders = (await getAuthHeaders()) as { authorization?: string } | null
   const token = authHeaders?.authorization?.split(" ")[1] || null
 
   return (
