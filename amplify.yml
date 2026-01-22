@@ -1,0 +1,29 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Forzamos Node 20 para Next.js 15
+        - nvm use 20
+        - node -v
+        - yarn install
+    build:
+      commands:
+        # Inyección de Variables al .env.production
+        - echo "MEDUSA_BACKEND_URL=$NEXT_PUBLIC_MEDUSA_BACKEND_URL" >> .env.production
+        - echo "NEXT_PUBLIC_MEDUSA_BACKEND_URL=$NEXT_PUBLIC_MEDUSA_BACKEND_URL" >> .env.production
+        - echo "NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL" >> .env.production
+        - echo "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=$NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY" >> .env.production
+        - echo "NEXT_PUBLIC_DEFAULT_REGION=$NEXT_PUBLIC_DEFAULT_REGION" >> .env.production
+        - echo "NEXT_PUBLIC_STRIPE_KEY=$NEXT_PUBLIC_STRIPE_KEY" >> .env.production
+        - echo "REVALIDATE_SECRET=$REVALIDATE_SECRET" >> .env.production
+        - echo "NEXT_PUBLIC_DELIVERY_OPTION_ID=$NEXT_PUBLIC_DELIVERY_OPTION_ID" >> .env.production
+        # Build
+        - yarn build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
