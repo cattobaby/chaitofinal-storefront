@@ -17,11 +17,16 @@ export async function generateMetadata({
   const protocol = headersList.get("x-forwarded-proto") || "https"
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
 
-  let languages = {}
+  // FIX: Explicitly type the object so TS accepts string keys
+  let languages: Record<string, string> = {}
+
   try {
     const regions = await listRegions()
-    const locales = Array.from(new Set((regions || []).map((r) => r.countries?.map((c) => c.iso_2) || []).flat().filter(Boolean)))
-    languages = locales.reduce((acc, code) => {
+    // FIX: Force type assertion to string[] to avoid 'undefined' issues
+    const locales = Array.from(new Set((regions || []).map((r) => r.countries?.map((c) => c.iso_2) || []).flat().filter(Boolean))) as string[]
+    
+    // FIX: Add type generic to reduce
+    languages = locales.reduce<Record<string, string>>((acc, code) => {
       acc[toHreflang(code)] = `${baseUrl}/${code}`
       return acc
     }, {})
@@ -49,6 +54,7 @@ export default async function Home({
 
   return (
     <main className="flex flex-col gap-6 bg-gradient-to-b from-green-50 via-neutral-50 to-neutral-50 pb-12">
+      <Script id="ld-org" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "Organization", name: "Chaito Marketplace", url: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000"}/${locale}`, logo: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8000"}/favicon.ico` }) }} />
       <div className="container mx-auto px-4 lg:px-8 mt-6">
         <Hero images={["/images/hero/image1.jpg", "/images/hero/image2.jpg", "/images/hero/image3.jpg"]} heading="" paragraph="" buttons={[]} />
       </div>
