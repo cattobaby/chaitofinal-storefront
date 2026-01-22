@@ -38,10 +38,6 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
   const router = useRouter()
   const currentPath = usePathname().split(`/${countryCode}`)[1]
 
-  useEffect(() => {
-    // Debugging logs removed for production clarity
-  }, [])
-
   const options = useMemo(() => {
     const opts =
       regions
@@ -53,6 +49,7 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
           }))
         })
         .flat()
+        .filter((o): o is CountryOption => !!o)
         .sort((a, b) => (a?.label ?? "").localeCompare(b?.label ?? "")) || []
     return opts
   }, [regions])
@@ -77,7 +74,6 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
       router.push(result.newPath)
       router.refresh()
     } catch (error: any) {
-      console.error("[CountrySelector] updateRegionWithValidation error", error)
       toast.error({
         title: "Error al cambiar de región",
         description: error?.message || "No se pudo actualizar la región. Inténtalo de nuevo.",
@@ -87,7 +83,6 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
 
   return (
     <div className="md:flex gap-2 items-center justify-end relative z-50">
-      {/* FIX: Text white for header visibility */}
       <Label className="label-md hidden md:block text-white/90">Envío a</Label>
       <div>
         <Listbox
@@ -98,7 +93,6 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
               : undefined
           }
         >
-          {/* FIX: Button styled for header (transparent bg, white text) */}
           <ListboxButton className="relative flex items-center gap-2 h-10 text-white hover:bg-brand-800 px-3 py-1 rounded-full transition-colors cursor-pointer focus:outline-none border-none">
             <div className="flex items-center gap-2">
               {current && (
@@ -110,7 +104,7 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
                     style={{
                       width: "20px",
                       height: "20px",
-                      borderRadius: "50%", // Circle flag
+                      borderRadius: "50%",
                       objectFit: "cover"
                     }}
                     countryCode={current.country ?? ""}
@@ -129,9 +123,9 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              {/* FIX: Options styled for readability (white bg, dark text) */}
               <ListboxOptions className="absolute right-0 z-[999] mt-2 w-[240px] overflow-auto bg-white text-neutral-900 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none max-h-[400px] py-1">
                 {options?.map((o, index) => {
+                  if (!o) return null;
                   return (
                     <ListboxOption
                       key={index}
@@ -149,7 +143,7 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
                           width: "16px",
                           height: "16px",
                         }}
-                        countryCode={o?.country ?? ""}
+                        countryCode={o.country}
                       />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{o.label}</span>

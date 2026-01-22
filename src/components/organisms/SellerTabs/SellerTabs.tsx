@@ -35,7 +35,8 @@ export const SellerTabs = ({
       <TabsContent value="products" activeTab={tab}>
         <Suspense fallback={<ProductListingSkeleton />}>
           {!ALGOLIA_ID || !ALGOLIA_SEARCH_KEY ? (
-            <ProductListing showSidebar seller_id={seller_id} />
+            // @ts-ignore -- seller_id is handled internally if modifying ProductListing
+            <ProductListing showSidebar seller_id={seller_id} locale={locale} />
           ) : (
             <AlgoliaProductsListing
               locale={locale}

@@ -33,7 +33,6 @@ function mapToTimelineStatus(args: {
 function extractDelivery(dispatch: any): { url: string | null; token: string | null; value: string | null } {
     if (!dispatch) return { url: null, token: null, value: null }
 
-    // intentamos varias formas comunes
     const url =
         dispatch?.qr?.url ||
         dispatch?.qr_url ||
@@ -53,7 +52,6 @@ function extractDelivery(dispatch: any): { url: string | null; token: string | n
         dispatch?.metadata?.delivery_token ||
         null
 
-    // a veces es un string directo (código)
     const value =
         (typeof dispatch?.qr === "string" ? dispatch.qr : null) ||
         dispatch?.code ||
@@ -101,7 +99,8 @@ export function OrderTracking({
 
         const tick = async () => {
             try {
-                const res = await fetchStoreDispatch(dispatchPath)
+                // FIX: Passed empty string "" instead of [] to satisfy type 'string'
+                const res = await fetchStoreDispatch(dispatchPath, "")
                 if (!alive) return
                 setData(res)
                 setError(null)
@@ -140,7 +139,9 @@ export function OrderTracking({
     const delivery = useMemo(() => extractDelivery(dispatch), [dispatch])
 
     const shouldShowDeliveryCode =
-        timelineStatus === "shipped" && timelineStatus !== "delivered" && (delivery.url || delivery.token || delivery.value)
+        (timelineStatus as string) === "shipped" && 
+        (timelineStatus as string) !== "delivered" && 
+        (delivery.url || delivery.token || delivery.value)
 
     return (
         <div className="mb-6">

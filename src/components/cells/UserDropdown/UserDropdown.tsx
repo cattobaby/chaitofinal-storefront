@@ -2,7 +2,6 @@
 
 import {
   Badge,
-  Divider,
   LogoutButton,
   NavigationItem,
 } from "@/components/atoms"
@@ -14,8 +13,8 @@ import { useUnreads } from "@talkjs/react"
 import { useState } from "react"
 
 export const UserDropdown = ({
-                               user,
-                             }: {
+  user,
+}: {
   user: HttpTypes.StoreCustomer | null
 }) => {
   const [open, setOpen] = useState(false)
@@ -30,15 +29,13 @@ export const UserDropdown = ({
     >
       <LocalizedClientLink
         href="/user"
-        className="relative block" // Added block for better hit area
+        className="relative block"
         aria-label="Go to user profile"
       >
-        {/* FIX: Changed color to white for the Purple Header */}
         <ProfileIcon color="white" size={24} />
       </LocalizedClientLink>
 
-      {/* Dropdown Menu */}
-      <Dropdown show={open} className="rounded-md shadow-xl border-none mt-2">
+      <div className={`absolute right-0 mt-2 rounded-md shadow-xl border-none z-50 bg-white transform transition-all duration-200 ${open ? "opacity-100 visible" : "opacity-0 invisible"}`}>
         {user ? (
           <div className="p-1 min-w-[200px]">
             <div className="px-4 py-3 border-b border-neutral-100 mb-1">
@@ -69,7 +66,7 @@ export const UserDropdown = ({
             <NavigationItem href="/user/register">Registrarse</NavigationItem>
           </div>
         )}
-      </Dropdown>
+      </div>
     </div>
   )
 }
