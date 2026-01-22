@@ -7,7 +7,7 @@ async function getBearerFromStorefrontCookies() {
     const c = await cookies()
     const token = c.get("_medusa_jwt")?.value
     if (!token) return ""
-    return token.startsWith("Bearer ") ? token : \`Bearer \${token}\`
+    return token.startsWith("Bearer ") ? token : `Bearer ${token}`
 }
 
 export async function GET(
@@ -20,7 +20,7 @@ export async function GET(
     const pubKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
     const auth = await getBearerFromStorefrontCookies()
 
-    const url = new URL(\`\${backend}/store/orders/\${orderId}/fulfillments/\${fid}/dispatch\`)
+    const url = new URL(`${backend}/store/orders/${orderId}/fulfillments/${fid}/dispatch`)
     url.searchParams.set("_ts", Date.now().toString())
 
     const res = await fetch(url.toString(), {

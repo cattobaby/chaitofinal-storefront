@@ -8,7 +8,7 @@ export async function GET(
     props: { params: Promise<{ id: string }> }
 ) {
     const params = await props.params
-    const upstream = await fetch(\`\${BACKEND_URL}/store/support/\${params.id}/messages\`, {
+    const upstream = await fetch(`${BACKEND_URL}/store/support/${params.id}/messages`, {
         method: "GET",
         headers: { "x-publishable-api-key": PUBLISHABLE, cookie: req.headers.get("cookie") || "" },
         credentials: "include",
@@ -22,7 +22,7 @@ export async function POST(
     props: { params: Promise<{ id: string }> }
 ) {
     const params = await props.params
-    const upstream = await fetch(\`\${BACKEND_URL}/store/support/\${params.id}/messages\`, {
+    const upstream = await fetch(`${BACKEND_URL}/store/support/${params.id}/messages`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-publishable-api-key": PUBLISHABLE, cookie: req.headers.get("cookie") || "" },
         body: await req.text(),
