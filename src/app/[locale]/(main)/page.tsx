@@ -1,5 +1,4 @@
 import { Hero, ProductListing } from "@/components/sections"
-
 import type { Metadata } from "next"
 import { headers } from "next/headers"
 import Script from "next/script"
@@ -8,141 +7,59 @@ import { toHreflang } from "@/lib/helpers/hreflang"
 import { getCurrencyCodeFromCookieHeader } from "@/lib/server/currency"
 
 export async function generateMetadata({
-                                           params,
-                                       }: {
-    params: Promise<{ locale: string }>
+  params,
+}: {
+  params: Promise<{ locale: string }>
 }): Promise<Metadata> {
-    const { locale } = await params
-    const headersList = await headers()
-    const host = headersList.get("host")
-    const protocol = headersList.get("x-forwarded-proto") || "https"
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+  const { locale } = await params
+  const headersList = await headers()
+  const host = headersList.get("host")
+  const protocol = headersList.get("x-forwarded-proto") || "https"
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
 
-    // Build alternates based on available regions (locales)
-    let languages: Record<string, string> = {}
-    try {
-        const regions = await listRegions()
-        const locales = Array.from(
-            new Set(
-                (regions || [])
-                    .map((r) => r.countries?.map((c) => c.iso_2) || [])
-                    .flat()
-                    .filter(Boolean)
-            )
-        ) as string[]
+  let languages = {}
+  try {
+    const regions = await listRegions()
+    const locales = Array.from(new Set((regions || []).map((r) => r.countries?.map((c) => c.iso_2) || []).flat().filter(Boolean)))
+    languages = locales.reduce((acc, code) => {
+      acc[toHreflang(code)] = `${baseUrl}/${code}`
+      return acc
+    }, {})
+  } catch {
+    languages = { [toHreflang(locale)]: `${baseUrl}/${locale}` }
+  }
 
-        languages = locales.reduce<Record<string, string>>((acc, code) => {
-            const hrefLang = toHreflang(code)
-            acc[hrefLang] = `${baseUrl}/${code}`
-            return acc
-        }, {})
-    } catch {
-        languages = { [toHreflang(locale)]: `${baseUrl}/${locale}` }
-    }
-
-    const title = "Chaito"
-    const description = "Tu Marketplace de confianza en Bolivia."
-    const ogImage = "/B2C_Storefront_Open_Graph.png"
-    const canonical = `${baseUrl}/${locale}`
-
-    return {
-        title,
-        description,
-        robots: { index: true, follow: true },
-        alternates: {
-            canonical,
-            languages: { ...languages, "x-default": baseUrl },
-        },
-        openGraph: {
-            title: `${title} | Marketplace`,
-            description,
-            url: canonical,
-            siteName: "Chaito Marketplace",
-            type: "website",
-            images: [
-                {
-                    url: ogImage.startsWith("http") ? ogImage : `${baseUrl}${ogImage}`,
-                    width: 1200,
-                    height: 630,
-                    alt: "Chaito Marketplace",
-                },
-            ],
-        },
-    }
+  return {
+    title: "Chaito",
+    description: "Tu Marketplace de confianza en Bolivia.",
+    alternates: { canonical: `${baseUrl}/${locale}`, languages: { ...languages, "x-default": baseUrl } },
+    openGraph: { title: "Chaito | Marketplace", description: "Tu Marketplace de confianza.", url: `${baseUrl}/${locale}`, siteName: "Chaito Marketplace", type: "website", images: [{ url: `${baseUrl}/B2C_Storefront_Open_Graph.png` }] }
+  }
 }
 
 export default async function Home({
-                                       params,
-                                   }: {
-    params: Promise<{ locale: string }>
+  params,
+}: {
+  params: Promise<{ locale: string }>
 }) {
-    const { locale } = await params
+  const { locale } = await params
+  const headersList = await headers()
+  const cookieHeader = headersList.get("cookie")
+  const currencyCode = getCurrencyCodeFromCookieHeader(cookieHeader)
 
-    const headersList = await headers()
-    const host = headersList.get("host")
-    const protocol = headersList.get("x-forwarded-proto") || "https"
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
-    const siteName = "Chaito Marketplace"
-
-    // ✅ currency from cookie header
-    const cookieHeader = headersList.get("cookie")
-    const currencyCode = getCurrencyCodeFromCookieHeader(cookieHeader)
-
-    return (
-        <main className="flex flex-col gap-6 bg-gradient-to-b from-green-50 via-neutral-50 to-neutral-50 pb-12">
-            <link
-                rel="preload"
-                as="image"
-                href="/images/hero/image1.jpg"
-                imageSrcSet="/images/hero/image1.jpg 700w"
-                imageSizes="(min-width: 1024px) 50vw, 100vw"
-            />
-
-            <Script
-                id="ld-org"
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "Organization",
-                        name: siteName,
-                        url: `${baseUrl}/${locale}`,
-                        logo: `${baseUrl}/favicon.ico`,
-                    }),
-                }}
-            />
-
-            {/* 1. MAIN BANNER CAROUSEL */}
-            <div className="container mx-auto px-4 lg:px-8 mt-6">
-                <Hero
-                    images={[
-                        "/images/hero/image1.jpg",
-                        "/images/hero/image2.jpg",
-                        "/images/hero/image3.jpg",
-                    ]}
-                    heading=""
-                    paragraph=""
-                    buttons={[]}
-                />
-            </div>
-
-            {/* 2. PRODUCT FEED */}
-            <div className="container mx-auto px-4 lg:px-8">
-                <div className="rounded-xl p-4 sm:p-6">
-                    <div className="flex flex-col gap-4">
-                        <h2 className="text-xl font-bold uppercase tracking-wide text-green-700">
-                            Recomendados
-                        </h2>
-
-                        {/* ✅ pass currencyCode */}
-                        <ProductListing
-                            showSidebar={false}
-                            locale={locale}
-                            currencyCode={currencyCode}
-                        />
-                    </div>
-                </div>
-            </div>
-        </main>
-    )
+  return (
+    <main className="flex flex-col gap-6 bg-gradient-to-b from-green-50 via-neutral-50 to-neutral-50 pb-12">
+      <div className="container mx-auto px-4 lg:px-8 mt-6">
+        <Hero images={["/images/hero/image1.jpg", "/images/hero/image2.jpg", "/images/hero/image3.jpg"]} heading="" paragraph="" buttons={[]} />
+      </div>
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="rounded-xl p-4 sm:p-6">
+          <div className="flex flex-col gap-4">
+            <h2 className="text-xl font-bold uppercase tracking-wide text-green-700">Recomendados</h2>
+            <ProductListing showSidebar={false} locale={locale} currencyCode={currencyCode} />
+          </div>
+        </div>
+      </div>
+    </main>
+  )
 }
