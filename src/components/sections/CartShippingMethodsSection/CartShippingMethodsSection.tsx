@@ -105,12 +105,23 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
     const isUsdt = displayCurrency.toLowerCase() === "usdt"
 
     // ✅ 2. Conversion Helper (Visual Only)
-    // If backend returns 50 Bs, and we want USDT, we divide by 6.96
     const getDisplayAmount = (amountMajor: number | null) => {
         if (amountMajor == null) return 0
         return isUsdt ? amountMajor / EXCHANGE_RATE : amountMajor
     }
 
+    // 🔍 LOG INICIAL
+    useEffect(() => {
+        if (isOpen) {
+            console.log("[🔍 SHIPPING DEBUG] Component Mounted/Open", {
+                cartId: cart.id,
+                currency: displayCurrency,
+                currentMode: mode
+            })
+        }
+    }, [isOpen, cart.id, displayCurrency, mode])
+
+    // --- EFECTO DE CÁLCULO DE DELIVERY ---
     useEffect(() => {
         if (!isOpen) return
         if (mode !== "delivery") return
@@ -121,15 +132,22 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
         setLoading(true)
 
         const run = async () => {
+            console.log("[🔍 SHIPPING DEBUG] Starting Delivery Calculation...")
             try {
                 const reco = await recommendDelivery(cart.id)
                 if (!cancelled) setDeliveryReco(reco)
 
                 const recoOptionId = (reco as any)?.shipping_option_id ?? (reco as any)?.optionId ?? null
                 const optionId: string | null = recoOptionId || deliveryOptionFromStore?.id || null
+
+                console.log("[🔍 SHIPPING DEBUG] Delivery Recommendation:", { reco, selectedOptionId: optionId })
+
                 if (!cancelled) setDeliveryOptionId(optionId)
 
-                if (!optionId) return
+                if (!optionId) {
+                    console.warn("[🔍 SHIPPING DEBUG] No delivery option ID found!")
+                    return
+                }
 
                 const q = await calculateShippingOptionQuote({
                     cartId: cart.id,
@@ -152,8 +170,9 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                     setDeliveryQuoteMajor(major)
                 }
 
-                console.log("[ship] delivery quote", { minor, major, ms: Date.now() - t0 })
+                console.log("[🔍 SHIPPING DEBUG] Quote Calculated:", { minor, major, ms: Date.now() - t0 })
             } catch (e: any) {
+                console.error("[🔍 SHIPPING DEBUG] Delivery Calculation Failed:", e)
                 if (!cancelled) setError(e?.message || "No se pudo calcular el precio del envío.")
             } finally {
                 if (!cancelled) setLoading(false)
@@ -164,6 +183,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
         return () => { cancelled = true }
     }, [isOpen, mode, cart.id, cart.currency_code, deliveryOptionFromStore?.id])
 
+    // --- EFECTO DE CARGA DE PICKUP ---
     useEffect(() => {
         if (!isOpen) return
         if (mode !== "pickup") return
@@ -171,15 +191,18 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
         let cancelled = false
         setError(null)
         setLoading(true)
+        console.log("[🔍 SHIPPING DEBUG] Loading Pickup Locations...")
 
         listPickupLocations(cart.id)
             .then((locs: PickupLocation[]) => {
                 if (cancelled) return
+                console.log("[🔍 SHIPPING DEBUG] Pickup Locations Loaded:", locs?.length)
                 setPickupLocations(locs || [])
                 setSelectedPickup((prev) => prev || (locs?.[0] ?? null))
             })
             .catch((e: any) => {
                 if (cancelled) return
+                console.error("[🔍 SHIPPING DEBUG] Pickup Load Failed:", e)
                 setError(e?.message || "No se pudieron cargar los puntos de recojo.")
             })
             .finally(() => {
@@ -193,7 +216,12 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
         setError(null)
     }, [mode, isOpen])
 
+    // 🔥 HANDLER PRINCIPAL DE CONFIRMACIÓN 🔥
     const handleConfirm = async () => {
+        console.log("\n==================================================")
+        console.log("[🔍 SHIPPING DEBUG] handleConfirm CLICKED")
+        console.log("==================================================")
+
         const t0 = Date.now()
         try {
             setSaving(true)
@@ -207,6 +235,9 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                 null
 
             const optionId = mode === "delivery" ? deliveryOptionId : selectedPickup?.shipping_option_id
+
+            console.log("[🔍 SHIPPING DEBUG] Option Selection:", { mode, optionId, sellerId })
+
             if (!optionId) {
                 setError("Selecciona una opción válida de envío.")
                 return
@@ -221,7 +252,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
             } else {
                 // ✅ Pickup Data Flags
                 payloadData.mode = "pickup"
-                payloadData.pickup = true // Extra explicit flag for backend
+                payloadData.pickup = true
                 payloadData.source = "pickup_selection"
                 if (selectedPickup?.stock_location_id) payloadData.stock_location_id = selectedPickup.stock_location_id
             }
@@ -240,14 +271,13 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                 amountMajor = 0
             }
 
-            // [DEBUG-PICKUP] 1. Log UI Payload
-            console.log("[DEBUG-PICKUP] Frontend: handleConfirm sending:", {
+            // [DEBUG-PICKUP] LOG CRÍTICO DEL PAYLOAD
+            console.log("[🔍 SHIPPING DEBUG] 🔥 PAYLOAD TO BACKEND (force/route.ts):", {
                 cartId: cart.id,
-                mode,
-                optionId,
-                amountMajor,
-                payloadData,
-                force: true
+                shippingMethodId: optionId,
+                amountMinor: amountMajor, // ESTE ES EL NÚMERO CLAVE
+                force: true,
+                data: payloadData
             })
 
             const res = await setShippingMethod({
@@ -259,15 +289,18 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({ cart, availableSh
                 force: true,
             })
 
+            console.log("[🔍 SHIPPING DEBUG] Backend Response:", res)
+
             if (!res.ok) {
-                console.error("[DEBUG-PICKUP] Frontend: handleConfirm failed", res.error)
+                console.error("[🔍 SHIPPING DEBUG] Failed to set shipping:", res.error)
                 setError(res.error?.message || "Error al establecer el método de envío.")
                 return
             }
 
-            console.log("[DEBUG-PICKUP] Frontend: handleConfirm success")
+            console.log("[🔍 SHIPPING DEBUG] Success! Redirecting to payment...")
             router.push(pathname + "?step=payment", { scroll: false })
         } catch (e: any) {
+            console.error("[🔍 SHIPPING DEBUG] Exception:", e)
             setError(e?.message || "Ocurrió un error")
         } finally {
             setSaving(false)
